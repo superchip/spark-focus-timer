@@ -14,7 +14,10 @@
                 <span class="logo-icon">⚡</span>
                 <span class="logo-text">Spark</span>
             </div>
-            <button class="settings-btn" id="settingsBtn">⚙️</button>
+            <div class="header-controls">
+                <button class="debug-btn" id="debugBtn" style="display: none;">🐛</button>
+                <button class="settings-btn" id="settingsBtn">⚙️</button>
+            </div>
         </header>
 
         <!-- Timer Display -->
@@ -115,6 +118,28 @@
                     <input type="checkbox" id="enableNotifications" checked>
                     <span>Enable Notifications</span>
                 </label>
+            </div>
+            
+            <div class="setting-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="enableDebugMode">
+                    <span>Debug Mode</span>
+                </label>
+            </div>
+        </div>
+        
+        <!-- Debug Console -->
+        <div class="debug-panel" id="debugPanel" style="display: none;">
+            <div class="debug-header">
+                <h3>Debug Console</h3>
+                <button class="close-btn" id="closeDebug">×</button>
+            </div>
+            <div class="debug-content">
+                <div class="debug-logs" id="debugLogs"></div>
+                <div class="debug-controls">
+                    <button class="btn btn-tertiary" id="clearLogs">Clear Logs</button>
+                    <button class="btn btn-tertiary" id="exportLogs">Export Logs</button>
+                </div>
             </div>
         </div>
     </div>

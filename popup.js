@@ -17,8 +17,13 @@ class SparkTimer {
             enableFacts: true,
             enableQuotes: true,
             enableWebsites: true,
-            enableNasa: true
+            enableNasa: true,
+            enableDebugMode: false
         };
+
+        // Debug system
+        this.debugLogs = [];
+        this.maxDebugLogs = 100;
 
         this.breakContentTypes = [
             'Interesting Fact',
@@ -35,10 +40,13 @@ class SparkTimer {
     async init() {
         await this.loadSettings();
         await this.loadStats();
+        await this.loadDebugLogs();
         this.setupEventListeners();
         this.updateDisplay();
         this.updateBreakPreview();
         this.setupSettingsPanel();
+        this.updateDebugVisibility();
+        this.debug('Spark Timer initialized', 'info');
     }
 
     async loadSettings() {
@@ -93,6 +101,10 @@ class SparkTimer {
         document.getElementById('resetBtn').addEventListener('click', () => this.resetSession());
         document.getElementById('settingsBtn').addEventListener('click', () => this.showSettings());
         document.getElementById('closeSettings').addEventListener('click', () => this.hideSettings());
+        document.getElementById('debugBtn').addEventListener('click', () => this.showDebugConsole());
+        document.getElementById('closeDebug').addEventListener('click', () => this.hideDebugConsole());
+        document.getElementById('clearLogs').addEventListener('click', () => this.clearDebugLogs());
+        document.getElementById('exportLogs').addEventListener('click', () => this.exportDebugLogs());
     }
 
     setupSettingsPanel() {
@@ -104,7 +116,8 @@ class SparkTimer {
             enableFacts: document.getElementById('enableFacts'),
             enableQuotes: document.getElementById('enableQuotes'),
             enableWebsites: document.getElementById('enableWebsites'),
-            enableNasa: document.getElementById('enableNasa')
+            enableNasa: document.getElementById('enableNasa'),
+            enableDebugMode: document.getElementById('enableDebugMode')
         };
 
         // Set initial values
@@ -116,6 +129,7 @@ class SparkTimer {
         elements.enableQuotes.checked = this.settings.enableQuotes;
         elements.enableWebsites.checked = this.settings.enableWebsites;
         elements.enableNasa.checked = this.settings.enableNasa;
+        elements.enableDebugMode.checked = this.settings.enableDebugMode;
 
         // Update display values
         document.getElementById('focusValue').textContent = this.settings.focusDuration;
@@ -148,6 +162,11 @@ class SparkTimer {
                     this.settings[key] = e.target.checked;
                     this.saveSettings();
                     this.updateBreakPreview();
+                    
+                    // Handle debug mode toggle
+                    if (key === 'enableDebugMode') {
+                        this.updateDebugVisibility();
+                    }
                 });
             }
         });
@@ -164,10 +183,12 @@ class SparkTimer {
     startSession() {
         if (this.isPaused) {
             this.isPaused = false;
+            this.debug('Timer resumed', 'info');
         } else {
             // Start new session
             this.timeLeft = this.getCurrentSessionDuration() * 60;
             this.totalTime = this.timeLeft;
+            this.debug(`Starting ${this.currentSession} session (${this.getCurrentSessionDuration()} minutes)`, 'info');
         }
         
         this.isRunning = true;
@@ -182,6 +203,7 @@ class SparkTimer {
         clearInterval(this.interval);
         this.updateControls();
         this.clearTimerState();
+        this.debug('Timer paused', 'info');
     }
 
     resetSession() {
@@ -201,6 +223,7 @@ class SparkTimer {
         this.updateDisplay();
         this.updateControls();
         this.clearTimerState();
+        this.debug(`Timer reset for ${this.currentSession} session`, 'info');
     }
 
     startTimer() {
@@ -219,6 +242,8 @@ class SparkTimer {
         this.isRunning = false;
         clearInterval(this.interval);
         
+        this.debug(`${this.currentSession} session completed`, 'info');
+        
         // Show notification
         if (this.settings.enableNotifications) {
             this.showNotification();
@@ -234,9 +259,11 @@ class SparkTimer {
             if (this.sessionCount % 4 === 0) {
                 this.currentSession = 'longBreak';
                 this.timeLeft = this.settings.longBreak * 60;
+                this.debug('Switching to long break', 'info');
             } else {
                 this.currentSession = 'shortBreak';
                 this.timeLeft = this.settings.shortBreak * 60;
+                this.debug('Switching to short break', 'info');
             }
             
             // Open break content
@@ -244,6 +271,7 @@ class SparkTimer {
         } else {
             this.currentSession = 'focus';
             this.timeLeft = this.settings.focusDuration * 60;
+            this.debug('Switching to focus session', 'info');
         }
 
         this.totalTime = this.timeLeft;
@@ -260,9 +288,13 @@ class SparkTimer {
         if (this.settings.enableWebsites) enabledTypes.push('website');
         if (this.settings.enableNasa) enabledTypes.push('nasa');
 
-        if (enabledTypes.length === 0) return;
+        if (enabledTypes.length === 0) {
+            this.debug('No break content types enabled', 'warn');
+            return;
+        }
 
         const randomType = enabledTypes[Math.floor(Math.random() * enabledTypes.length)];
+        this.debug(`Opening break content: ${randomType}`, 'info');
         
         try {
             let url;
@@ -289,6 +321,7 @@ class SparkTimer {
             });
         } catch (error) {
             console.error('Failed to open break content:', error);
+            this.debug(`Failed to open break content: ${error.message}`, 'error');
         }
     }
 
@@ -467,6 +500,132 @@ class SparkTimer {
 
     async clearTimerState() {
         await chrome.storage.local.remove(['timerState']);
+    }
+
+    async loadDebugLogs() {
+        // Load both popup and background debug logs from storage
+        const result = await chrome.storage.local.get(['popupDebugLogs', 'backgroundDebugLogs']);
+        
+        if (result.popupDebugLogs) {
+            this.debugLogs = result.popupDebugLogs;
+        }
+        
+        // Merge with background logs
+        if (result.backgroundDebugLogs) {
+            const allLogs = [...this.debugLogs, ...result.backgroundDebugLogs];
+            // Sort by timestamp
+            allLogs.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            this.debugLogs = allLogs.slice(-this.maxDebugLogs);
+        }
+    }
+
+    async saveDebugLogs() {
+        // Save popup logs to storage
+        await chrome.storage.local.set({ 
+            popupDebugLogs: this.debugLogs.filter(log => log.source !== 'background').slice(-50) 
+        });
+    }
+
+    // Debug functionality
+    debug(message, level = 'info') {
+        if (!this.settings.enableDebugMode) return;
+        
+        const timestamp = new Date().toISOString();
+        const logEntry = {
+            timestamp,
+            level,
+            message,
+            session: this.currentSession,
+            timeLeft: this.timeLeft,
+            isRunning: this.isRunning
+        };
+        
+        this.debugLogs.push(logEntry);
+        
+        // Keep only the most recent logs
+        if (this.debugLogs.length > this.maxDebugLogs) {
+            this.debugLogs.shift();
+        }
+        
+        // Log to console as well
+        console.log(`[SPARK DEBUG ${level.toUpperCase()}]`, message, logEntry);
+        
+        // Update debug display if panel is open
+        this.updateDebugDisplay();
+        
+        // Save to storage
+        this.saveDebugLogs();
+        
+        // Send to background script for persistent logging
+        chrome.runtime.sendMessage({
+            action: 'debugLog',
+            logEntry
+        });
+    }
+
+    updateDebugVisibility() {
+        const debugBtn = document.getElementById('debugBtn');
+        debugBtn.style.display = this.settings.enableDebugMode ? 'block' : 'none';
+    }
+
+    async showDebugConsole() {
+        // Refresh debug logs from storage when opening console
+        await this.loadDebugLogs();
+        document.getElementById('debugPanel').style.display = 'block';
+        this.updateDebugDisplay();
+    }
+
+    hideDebugConsole() {
+        document.getElementById('debugPanel').style.display = 'none';
+    }
+
+    updateDebugDisplay() {
+        const debugLogsEl = document.getElementById('debugLogs');
+        if (!debugLogsEl) return;
+
+        debugLogsEl.innerHTML = this.debugLogs
+            .slice(-50) // Show only the last 50 logs
+            .map(log => {
+                const levelClass = `debug-${log.level}`;
+                return `
+                    <div class="debug-log-entry ${levelClass}">
+                        <span class="debug-timestamp">${new Date(log.timestamp).toLocaleTimeString()}</span>
+                        <span class="debug-level">[${log.level.toUpperCase()}]</span>
+                        <span class="debug-message">${log.message}</span>
+                        <span class="debug-context">Session: ${log.session}, Time: ${Math.floor(log.timeLeft / 60)}:${(log.timeLeft % 60).toString().padStart(2, '0')}</span>
+                    </div>
+                `;
+            })
+            .join('');
+
+        // Auto-scroll to bottom
+        debugLogsEl.scrollTop = debugLogsEl.scrollHeight;
+    }
+
+    clearDebugLogs() {
+        this.debugLogs = [];
+        this.updateDebugDisplay();
+        this.saveDebugLogs();
+        chrome.runtime.sendMessage({
+            action: 'clearDebugLogs'
+        });
+        chrome.storage.local.remove(['popupDebugLogs']);
+    }
+
+    exportDebugLogs() {
+        const logs = JSON.stringify(this.debugLogs, null, 2);
+        const blob = new Blob([logs], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `spark-debug-logs-${new Date().toISOString().slice(0, 19)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        this.debug('Debug logs exported', 'info');
     }
 
     showNotification() {

@@ -1,7 +1,34 @@
 // Background service worker for Spark extension
 
+// Debug logging system
+let debugLogs = [];
+const maxDebugLogs = 1000;
+
+function debugLog(message, level = 'info') {
+    const timestamp = new Date().toISOString();
+    const logEntry = {
+        timestamp,
+        level,
+        message,
+        source: 'background'
+    };
+    
+    debugLogs.push(logEntry);
+    
+    // Keep only the most recent logs
+    if (debugLogs.length > maxDebugLogs) {
+        debugLogs.shift();
+    }
+    
+    // Always log to console for background script
+    console.log(`[SPARK BG ${level.toUpperCase()}]`, message);
+    
+    // Store in chrome storage for persistence
+    chrome.storage.local.set({ backgroundDebugLogs: debugLogs.slice(-100) }); // Keep last 100
+}
+
 chrome.runtime.onInstalled.addListener(() => {
-    console.log('Spark extension installed');
+    debugLog('Spark extension installed', 'info');
     
     // Set up default settings
     chrome.storage.sync.get(['settings'], (result) => {
@@ -14,15 +41,21 @@ chrome.runtime.onInstalled.addListener(() => {
                 enableFacts: true,
                 enableQuotes: true,
                 enableWebsites: true,
-                enableNasa: true
+                enableNasa: true,
+                enableDebugMode: false
             };
             chrome.storage.sync.set({ settings: defaultSettings });
+            debugLog('Default settings initialized', 'info');
+        } else {
+            debugLog('Existing settings loaded', 'info');
         }
     });
 });
 
 // Handle messages from popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    debugLog(`Received message: ${request.action}`, 'info');
+    
     switch (request.action) {
         case 'showNotification':
             showNotification(request.title, request.message);
@@ -30,11 +63,34 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         case 'openBreakContent':
             openBreakContent(request.type, request.url);
             break;
+        case 'debugLog':
+            // Handle debug logs from popup
+            if (request.logEntry) {
+                const logEntry = {
+                    ...request.logEntry,
+                    source: 'popup'
+                };
+                debugLogs.push(logEntry);
+                
+                if (debugLogs.length > maxDebugLogs) {
+                    debugLogs.shift();
+                }
+                
+                chrome.storage.local.set({ backgroundDebugLogs: debugLogs.slice(-100) });
+                console.log(`[SPARK POPUP ${logEntry.level.toUpperCase()}]`, logEntry.message);
+            }
+            break;
+        case 'clearDebugLogs':
+            debugLogs = [];
+            chrome.storage.local.remove(['backgroundDebugLogs']);
+            debugLog('Debug logs cleared', 'info');
+            break;
     }
 });
 
 // Show notification
 function showNotification(title, message) {
+    debugLog(`Showing notification: ${title}`, 'info');
     chrome.notifications.create({
         type: 'basic',
         iconUrl: 'icons/icon48.png',
@@ -46,28 +102,39 @@ function showNotification(title, message) {
 
 // Handle break content opening
 async function openBreakContent(type, url) {
+    debugLog(`Opening break content: ${type} from ${url}`, 'info');
+    
     try {
         let content = '';
         let finalUrl = '';
 
         switch (type) {
             case 'fact':
+                debugLog('Fetching interesting fact', 'info');
                 const factData = await fetchJsonData(url);
                 if (factData && factData.text) {
                     content = `Did you know? ${factData.text}`;
                     finalUrl = createContentPage('Interesting Fact', content, '🧠');
+                    debugLog('Successfully created fact content page', 'info');
+                } else {
+                    debugLog('Failed to fetch fact data', 'warn');
                 }
                 break;
 
             case 'quote':
+                debugLog('Fetching inspirational quote', 'info');
                 const quoteData = await fetchJsonData(url);
                 if (quoteData && quoteData.data && quoteData.data.quoteText) {
                     content = `"${quoteData.data.quoteText}" - ${quoteData.data.quoteAuthor || 'Unknown'}`;
                     finalUrl = createContentPage('Inspirational Quote', content, '💭');
+                    debugLog('Successfully created quote content page', 'info');
+                } else {
+                    debugLog('Failed to fetch quote data', 'warn');
                 }
                 break;
 
             case 'nasa':
+                debugLog('Fetching NASA image of the day', 'info');
                 const nasaData = await fetchJsonData(url);
                 if (nasaData && nasaData.url) {
                     content = `
@@ -78,32 +145,48 @@ async function openBreakContent(type, url) {
                         </div>
                     `;
                     finalUrl = createContentPage('NASA Discovery', content, '🚀', true);
+                    debugLog('Successfully created NASA content page', 'info');
+                } else {
+                    debugLog('Failed to fetch NASA data', 'warn');
                 }
                 break;
 
             default:
                 // For websites, just open the URL directly
                 finalUrl = url;
+                debugLog(`Opening website directly: ${url}`, 'info');
                 break;
         }
 
         if (finalUrl) {
             chrome.tabs.create({ url: finalUrl });
+            debugLog('Successfully opened tab with content', 'info');
+        } else {
+            debugLog('No content URL generated', 'warn');
         }
     } catch (error) {
+        debugLog(`Error opening break content: ${error.message}`, 'error');
         console.error('Error opening break content:', error);
         // Fallback: open a default interesting website
         chrome.tabs.create({ url: 'https://theuselessweb.com/' });
+        debugLog('Opened fallback website', 'info');
     }
 }
 
 // Fetch JSON data from APIs
 async function fetchJsonData(url) {
+    debugLog(`Fetching data from: ${url}`, 'info');
     try {
         const response = await fetch(url);
-        if (!response.ok) throw new Error('Network response was not ok');
-        return await response.json();
+        if (!response.ok) {
+            debugLog(`HTTP ${response.status}: ${response.statusText}`, 'warn');
+            throw new Error('Network response was not ok');
+        }
+        const data = await response.json();
+        debugLog('Successfully fetched and parsed JSON data', 'info');
+        return data;
     } catch (error) {
+        debugLog(`Fetch error: ${error.message}`, 'error');
         console.error('Fetch error:', error);
         return null;
     }
@@ -248,6 +331,7 @@ function createContentPage(title, content, emoji, isHtml = false) {
 
 // Handle alarms (for notifications when popup is closed)
 chrome.alarms.onAlarm.addListener((alarm) => {
+    debugLog(`Alarm triggered: ${alarm.name}`, 'info');
     if (alarm.name === 'sparkTimer') {
         showNotification('⚡ Spark Timer', 'Check your timer!');
     }
@@ -256,5 +340,13 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 // Cleanup object URLs periodically to prevent memory leaks
 setInterval(() => {
     // This is a basic cleanup - in a real extension you'd track created URLs
-    console.log('Performing periodic cleanup');
+    debugLog('Performing periodic cleanup', 'info');
 }, 600000); // 10 minutes
+
+// Load existing debug logs on startup
+chrome.storage.local.get(['backgroundDebugLogs'], (result) => {
+    if (result.backgroundDebugLogs) {
+        debugLogs = result.backgroundDebugLogs;
+        debugLog('Loaded existing debug logs from storage', 'info');
+    }
+});
