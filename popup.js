@@ -24,6 +24,8 @@ class SparkTimer {
         // Debug system
         this.debugLogs = [];
         this.maxDebugLogs = 100;
+        this.speedMultiplier = 1;
+        this.originalInterval = 1000; // Store original interval
 
         this.breakContentTypes = [
             'Interesting Fact',
@@ -105,6 +107,17 @@ class SparkTimer {
         document.getElementById('closeDebug').addEventListener('click', () => this.hideDebugConsole());
         document.getElementById('clearLogs').addEventListener('click', () => this.clearDebugLogs());
         document.getElementById('exportLogs').addEventListener('click', () => this.exportDebugLogs());
+        
+        // Debug testing controls
+        document.getElementById('applySpeed').addEventListener('click', () => this.applySpeedMultiplier());
+        document.getElementById('testNotification').addEventListener('click', () => this.testNotification());
+        document.getElementById('testBreakContent').addEventListener('click', () => this.testBreakContent());
+        document.getElementById('skipToEnd').addEventListener('click', () => this.skipToSessionEnd());
+        document.getElementById('simulateFocus').addEventListener('click', () => this.simulateSession('focus', 10));
+        document.getElementById('simulateBreak').addEventListener('click', () => this.simulateSession('shortBreak', 5));
+        document.getElementById('resetStats').addEventListener('click', () => this.resetStats());
+        document.getElementById('inspectStorage').addEventListener('click', () => this.inspectStorage());
+        document.getElementById('clearAllStorage').addEventListener('click', () => this.clearAllStorage());
     }
 
     setupSettingsPanel() {
@@ -227,6 +240,9 @@ class SparkTimer {
     }
 
     startTimer() {
+        const interval = this.originalInterval / this.speedMultiplier;
+        this.debug(`Starting timer with ${this.speedMultiplier}x speed (${interval}ms interval)`, 'info');
+        
         this.interval = setInterval(() => {
             this.timeLeft--;
             this.updateDisplay();
@@ -235,7 +251,7 @@ class SparkTimer {
             if (this.timeLeft <= 0) {
                 this.handleSessionComplete();
             }
-        }, 1000);
+        }, interval);
     }
 
     async handleSessionComplete() {
@@ -573,6 +589,11 @@ class SparkTimer {
         await this.loadDebugLogs();
         document.getElementById('debugPanel').style.display = 'block';
         this.updateDebugDisplay();
+        this.inspectStorage(); // Auto-refresh storage display
+        
+        // Set current speed multiplier in dropdown
+        const speedSelect = document.getElementById('speedMultiplier');
+        speedSelect.value = this.speedMultiplier.toString();
     }
 
     hideDebugConsole() {
@@ -626,6 +647,133 @@ class SparkTimer {
         URL.revokeObjectURL(url);
         
         this.debug('Debug logs exported', 'info');
+    }
+
+    // Debug Testing Methods
+    applySpeedMultiplier() {
+        const speedSelect = document.getElementById('speedMultiplier');
+        const newSpeed = parseInt(speedSelect.value);
+        const oldSpeed = this.speedMultiplier;
+        this.speedMultiplier = newSpeed;
+        
+        this.debug(`Speed multiplier changed from ${oldSpeed}x to ${newSpeed}x`, 'info');
+        
+        // If timer is running, restart it with new speed
+        if (this.isRunning) {
+            clearInterval(this.interval);
+            this.startTimer();
+            this.debug('Timer restarted with new speed', 'info');
+        }
+    }
+
+    testNotification() {
+        this.debug('Testing notification system', 'info');
+        chrome.runtime.sendMessage({
+            action: 'showNotification',
+            title: '🧪 Test Notification',
+            message: 'This is a test notification from the debug console!'
+        });
+    }
+
+    testBreakContent() {
+        this.debug('Testing break content system', 'info');
+        const contentTypes = ['fact', 'quote', 'website', 'nasa'];
+        const randomType = contentTypes[Math.floor(Math.random() * contentTypes.length)];
+        
+        chrome.runtime.sendMessage({
+            action: 'debugCommand',
+            command: 'testBreakContent',
+            contentType: randomType
+        });
+    }
+
+    skipToSessionEnd() {
+        if (!this.isRunning) {
+            this.debug('Cannot skip - timer is not running', 'warn');
+            return;
+        }
+        
+        this.debug('Skipping to session end', 'info');
+        this.timeLeft = 1; // Will trigger session complete on next tick
+    }
+
+    simulateSession(sessionType, durationSeconds) {
+        this.debug(`Simulating ${sessionType} session for ${durationSeconds} seconds`, 'info');
+        
+        // Stop current session
+        if (this.isRunning) {
+            this.pauseSession();
+        }
+        
+        // Set up simulation
+        this.currentSession = sessionType;
+        this.timeLeft = durationSeconds;
+        this.totalTime = durationSeconds;
+        this.updateDisplay();
+        
+        // Start the simulated session
+        this.startSession();
+    }
+
+    async resetStats() {
+        this.debug('Resetting all statistics', 'info');
+        
+        await chrome.storage.local.remove(['stats']);
+        
+        // Reset display
+        document.getElementById('completedSessions').textContent = '0';
+        document.getElementById('totalFocusTime').textContent = '0m';
+        document.getElementById('currentStreak').textContent = '0';
+        
+        this.debug('Statistics reset complete', 'info');
+    }
+
+    async inspectStorage() {
+        this.debug('Inspecting extension storage', 'info');
+        
+        try {
+            const [syncStorage, localStorage] = await Promise.all([
+                chrome.storage.sync.get(null),
+                chrome.storage.local.get(null)
+            ]);
+            
+            const storageData = {
+                sync: syncStorage,
+                local: localStorage
+            };
+            
+            const storageDisplay = document.getElementById('storageDisplay');
+            storageDisplay.innerHTML = `<pre>${JSON.stringify(storageData, null, 2)}</pre>`;
+            
+            this.debug('Storage inspection complete', 'info');
+        } catch (error) {
+            this.debug(`Storage inspection failed: ${error.message}`, 'error');
+        }
+    }
+
+    async clearAllStorage() {
+        if (!confirm('Are you sure you want to clear ALL extension data? This cannot be undone.')) {
+            return;
+        }
+        
+        this.debug('Clearing all extension storage', 'warn');
+        
+        try {
+            await Promise.all([
+                chrome.storage.sync.clear(),
+                chrome.storage.local.clear()
+            ]);
+            
+            this.debug('All storage cleared', 'info');
+            
+            // Reinitialize with defaults
+            await this.loadSettings();
+            this.updateDisplay();
+            this.inspectStorage();
+            
+        } catch (error) {
+            this.debug(`Failed to clear storage: ${error.message}`, 'error');
+        }
     }
 
     showNotification() {

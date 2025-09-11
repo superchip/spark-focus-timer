@@ -135,10 +135,50 @@
                 <button class="close-btn" id="closeDebug">×</button>
             </div>
             <div class="debug-content">
-                <div class="debug-logs" id="debugLogs"></div>
-                <div class="debug-controls">
-                    <button class="btn btn-tertiary" id="clearLogs">Clear Logs</button>
-                    <button class="btn btn-tertiary" id="exportLogs">Export Logs</button>
+                <!-- Testing Controls -->
+                <div class="debug-section">
+                    <h4>Timer Testing</h4>
+                    <div class="debug-control-row">
+                        <label>Speed Multiplier:</label>
+                        <select id="speedMultiplier">
+                            <option value="1">Normal (1x)</option>
+                            <option value="10">Fast (10x)</option>
+                            <option value="60" selected>Very Fast (60x)</option>
+                            <option value="300">Ultra Fast (300x)</option>
+                            <option value="3600">Lightning (3600x)</option>
+                        </select>
+                        <button class="btn btn-small" id="applySpeed">Apply</button>
+                    </div>
+                    <div class="debug-control-row">
+                        <button class="btn btn-small" id="testNotification">Test Notification</button>
+                        <button class="btn btn-small" id="testBreakContent">Test Break Content</button>
+                        <button class="btn btn-small" id="skipToEnd">Skip to Session End</button>
+                    </div>
+                    <div class="debug-control-row">
+                        <button class="btn btn-small" id="simulateFocus">Simulate Focus (10s)</button>
+                        <button class="btn btn-small" id="simulateBreak">Simulate Break (5s)</button>
+                        <button class="btn btn-small" id="resetStats">Reset Stats</button>
+                    </div>
+                </div>
+
+                <!-- Storage Inspector -->
+                <div class="debug-section">
+                    <h4>Storage Inspector</h4>
+                    <div class="debug-control-row">
+                        <button class="btn btn-small" id="inspectStorage">Refresh Storage</button>
+                        <button class="btn btn-small" id="clearAllStorage">Clear All Storage</button>
+                    </div>
+                    <div class="storage-display" id="storageDisplay"></div>
+                </div>
+
+                <!-- Logs -->
+                <div class="debug-section">
+                    <h4>Debug Logs</h4>
+                    <div class="debug-logs" id="debugLogs"></div>
+                    <div class="debug-controls">
+                        <button class="btn btn-tertiary" id="clearLogs">Clear Logs</button>
+                        <button class="btn btn-tertiary" id="exportLogs">Export Logs</button>
+                    </div>
                 </div>
             </div>
         </div>

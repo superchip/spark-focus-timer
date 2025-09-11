@@ -88,6 +88,60 @@ async function testDebugFeatures() {
     } catch (error) {
         console.error('❌ Message test failed:', error);
     }
+    
+    // Test break content
+    try {
+        chrome.runtime.sendMessage({
+            action: 'debugCommand',
+            command: 'testBreakContent',
+            contentType: 'fact'
+        });
+        console.log('✅ Break content test initiated');
+    } catch (error) {
+        console.error('❌ Break content test failed:', error);
+    }
+}
+
+// Function to set accelerated timer mode
+async function setAcceleratedMode(speedMultiplier = 60) {
+    try {
+        const debugSettings = {
+            enabled: true,
+            logLevel: 2,
+            testMode: true,
+            acceleratedTimers: true,
+            speedMultiplier: speedMultiplier
+        };
+        
+        await chrome.storage.sync.set({ debugSettings });
+        console.log(`✅ Accelerated mode enabled (${speedMultiplier}x speed)`);
+        console.log('🔄 Please close and reopen the extension popup to see changes');
+        
+        return true;
+    } catch (error) {
+        console.error('❌ Failed to enable accelerated mode:', error);
+        return false;
+    }
+}
+
+// Function to run comprehensive tests
+async function runComprehensiveTests() {
+    console.log('🚀 Running comprehensive Spark debug tests...');
+    
+    // Enable debug mode first
+    await enableSparkDebugMode();
+    
+    // Wait a moment
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Test all features
+    await testDebugFeatures();
+    
+    // Enable accelerated mode
+    await setAcceleratedMode(300); // 5 minute sessions become 1 second
+    
+    console.log('✅ Comprehensive tests complete');
+    console.log('💡 Check the extension popup debug console for detailed logs');
 }
 
 // Auto-run check on load
@@ -110,11 +164,15 @@ window.sparkDebugConsole = {
     enable: enableSparkDebugMode,
     disable: disableSparkDebugMode,
     check: checkDebugStatus,
-    test: testDebugFeatures
+    test: testDebugFeatures,
+    setAcceleratedMode: setAcceleratedMode,
+    runComprehensiveTests: runComprehensiveTests
 };
 
 console.log('🎯 Quick commands available:');
-console.log('  window.sparkDebugConsole.enable()   - Enable debug mode');
-console.log('  window.sparkDebugConsole.disable()  - Disable debug mode');
-console.log('  window.sparkDebugConsole.check()    - Check status');
-console.log('  window.sparkDebugConsole.test()     - Test features');
+console.log('  window.sparkDebugConsole.enable()     - Enable debug mode');
+console.log('  window.sparkDebugConsole.disable()    - Disable debug mode');
+console.log('  window.sparkDebugConsole.check()      - Check status');
+console.log('  window.sparkDebugConsole.test()       - Test features');
+console.log('  window.sparkDebugConsole.setAcceleratedMode(speed) - Set timer speed');
+console.log('  window.sparkDebugConsole.runComprehensiveTests() - Run all tests');

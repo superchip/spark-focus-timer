@@ -85,6 +85,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             chrome.storage.local.remove(['backgroundDebugLogs']);
             debugLog('Debug logs cleared', 'info');
             break;
+        case 'debugCommand':
+            handleDebugCommand(request.command, request);
+            break;
     }
 });
 
@@ -350,3 +353,63 @@ chrome.storage.local.get(['backgroundDebugLogs'], (result) => {
         debugLog('Loaded existing debug logs from storage', 'info');
     }
 });
+
+// Handle debug commands
+function handleDebugCommand(command, request) {
+    debugLog(`Handling debug command: ${command}`, 'info');
+    
+    switch (command) {
+        case 'testBreakContent':
+            testBreakContent(request.contentType);
+            break;
+        case 'simulateNotification':
+            showNotification('🧪 Debug Test', 'This is a simulated notification for testing purposes');
+            break;
+        case 'exportLogs':
+            exportDebugLogs();
+            break;
+        default:
+            debugLog(`Unknown debug command: ${command}`, 'warn');
+    }
+}
+
+// Test break content functionality
+function testBreakContent(contentType = null) {
+    const types = ['fact', 'quote', 'website', 'nasa'];
+    const testType = contentType || types[Math.floor(Math.random() * types.length)];
+    
+    debugLog(`Testing break content type: ${testType}`, 'info');
+    
+    const testUrls = {
+        fact: 'https://uselessfacts.jsph.pl/random.json?language=en',
+        quote: 'https://api.quotegarden.io/api/v3/quotes/random',
+        website: 'https://theuselessweb.com/',
+        nasa: 'https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY'
+    };
+    
+    openBreakContent(testType, testUrls[testType]);
+}
+
+// Export debug logs for analysis
+function exportDebugLogs() {
+    debugLog('Exporting debug logs for analysis', 'info');
+    
+    const exportData = {
+        timestamp: new Date().toISOString(),
+        totalLogs: debugLogs.length,
+        logs: debugLogs
+    };
+    
+    // Create a data URL with the logs
+    const logData = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([logData], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    // Open in a new tab for download
+    chrome.tabs.create({ 
+        url: url,
+        active: false 
+    });
+    
+    debugLog('Debug logs exported to new tab', 'info');
+}

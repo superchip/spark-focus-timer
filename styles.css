@@ -551,6 +551,112 @@ body {
     background: rgba(255, 255, 255, 0.5);
 }
 
+/* Debug Testing Styles */
+.debug-section {
+    margin-bottom: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.debug-section h4 {
+    color: #f3f4f6;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.debug-control-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.debug-control-row:last-child {
+    margin-bottom: 0;
+}
+
+.debug-control-row label {
+    color: #d1d5db;
+    font-size: 12px;
+    font-weight: 500;
+    min-width: 80px;
+    margin: 0;
+}
+
+.debug-control-row select {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    color: white;
+    padding: 6px 8px;
+    font-size: 12px;
+    min-width: 120px;
+}
+
+.debug-control-row select option {
+    background: #374151;
+    color: white;
+}
+
+.btn-small {
+    font-size: 11px !important;
+    padding: 6px 12px !important;
+    border-radius: 6px !important;
+    text-transform: none !important;
+    letter-spacing: normal !important;
+    background: rgba(59, 130, 246, 0.8) !important;
+    color: white !important;
+    border: none !important;
+    transition: all 0.2s ease !important;
+}
+
+.btn-small:hover {
+    background: rgba(59, 130, 246, 1) !important;
+    transform: translateY(-1px) !important;
+}
+
+.storage-display {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+    padding: 12px;
+    margin-top: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: #d1d5db;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.storage-display pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.storage-display::-webkit-scrollbar {
+    width: 4px;
+}
+
+.storage-display::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 2px;
+}
+
+.storage-display::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+}
+
 /* Responsive design */
 @media (max-width: 450px) {
     body {
