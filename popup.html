@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spark</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <span class="logo-icon">⚡</span>
+                <span class="logo-text">Spark</span>
+            </div>
+            <button class="settings-btn" id="settingsBtn">⚙️</button>
+        </header>
+
+        <!-- Timer Display -->
+        <div class="timer-section">
+            <div class="timer-display">
+                <div class="time-left" id="timeLeft">25:00</div>
+                <div class="session-type" id="sessionType">Focus Time</div>
+                <div class="progress-ring">
+                    <svg class="progress-ring-svg" width="120" height="120">
+                        <circle class="progress-ring-circle-bg" cx="60" cy="60" r="52"/>
+                        <circle class="progress-ring-circle" cx="60" cy="60" r="52" id="progressCircle"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button class="btn btn-primary" id="startBtn">Start Focus</button>
+            <button class="btn btn-secondary" id="pauseBtn" style="display: none;">Pause</button>
+            <button class="btn btn-tertiary" id="resetBtn">Reset</button>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-number" id="completedSessions">0</div>
+                <div class="stat-label">Sessions Today</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="totalFocusTime">0h</div>
+                <div class="stat-label">Focus Time</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="currentStreak">0</div>
+                <div class="stat-label">Streak</div>
+            </div>
+        </div>
+
+        <!-- Break Content Preview -->
+        <div class="break-preview" id="breakPreview" style="display: none;">
+            <div class="break-header">
+                <span class="break-icon">✨</span>
+                <span>Your next break will show:</span>
+            </div>
+            <div class="break-content-type" id="breakContentType">Interesting Website</div>
+        </div>
+
+        <!-- Settings Panel -->
+        <div class="settings-panel" id="settingsPanel" style="display: none;">
+            <div class="settings-header">
+                <h3>Settings</h3>
+                <button class="close-btn" id="closeSettings">×</button>
+            </div>
+            
+            <div class="setting-group">
+                <label>Focus Duration (minutes)</label>
+                <input type="range" id="focusDuration" min="15" max="60" value="25" step="5">
+                <span id="focusValue">25</span>
+            </div>
+            
+            <div class="setting-group">
+                <label>Short Break (minutes)</label>
+                <input type="range" id="shortBreak" min="3" max="15" value="5" step="1">
+                <span id="shortBreakValue">5</span>
+            </div>
+            
+            <div class="setting-group">
+                <label>Long Break (minutes)</label>
+                <input type="range" id="longBreak" min="15" max="45" value="30" step="5">
+                <span id="longBreakValue">30</span>
+            </div>
+            
+            <div class="setting-group">
+                <label>Break Content Types</label>
+                <div class="checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="enableFacts" checked>
+                        <span>Interesting Facts</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="enableQuotes" checked>
+                        <span>Inspirational Quotes</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="enableWebsites" checked>
+                        <span>Cool Websites</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="enableNasa" checked>
+                        <span>NASA Image of the Day</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="setting-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="enableNotifications" checked>
+                    <span>Enable Notifications</span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>
