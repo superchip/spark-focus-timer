@@ -884,8 +884,20 @@ class SparkTimer {
 
     exportDebugLogs() {
         const logs = JSON.stringify(this.debugLogs, null, 2);
-        const blob = new Blob([logs], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
+        let url;
+        try {
+            if (typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') {
+                const blob = new Blob([logs], { type: 'application/json' });
+                url = URL.createObjectURL(blob);
+            } else {
+                this.debug('URL.createObjectURL not available in popup; using data URL', 'warn');
+            }
+        } catch (e) {
+            this.debug(`createObjectURL failed in popup: ${e.message}; using data URL`, 'warn');
+        }
+        if (!url) {
+            url = 'data:application/json;charset=utf-8,' + encodeURIComponent(logs);
+        }
         
         const a = document.createElement('a');
         a.href = url;
@@ -893,7 +905,9 @@ class SparkTimer {
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        if (url.startsWith('blob:')) {
+            URL.revokeObjectURL(url);
+        }
         
         this.debug('Debug logs exported', 'info');
     }

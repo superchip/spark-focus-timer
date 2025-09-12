@@ -480,9 +480,18 @@ function createContentPage(title, content, emoji, isHtml = false) {
     </body>
     </html>
     `;
-    
-    const blob = new Blob([html], { type: 'text/html' });
-    return URL.createObjectURL(blob);
+    // In extension MV3 service worker context URL.createObjectURL may be unavailable.
+    try {
+        if (typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') {
+            const blob = new Blob([html], { type: 'text/html' });
+            return URL.createObjectURL(blob);
+        }
+        debugLog('URL.createObjectURL not available; falling back to data URL', 'warn');
+    } catch (e) {
+        debugLog(`createObjectURL failed: ${e.message}; using data URL fallback`, 'warn');
+    }
+    // Fallback: data URL (encode to preserve characters)
+    return 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
 }
 
 // Handle alarms (for notifications when popup is closed)
@@ -1033,8 +1042,20 @@ function exportDebugLogs() {
     
     // Create a data URL with the logs
     const logData = JSON.stringify(exportData, null, 2);
-    const blob = new Blob([logData], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
+    let url;
+    try {
+        if (typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') {
+            const blob = new Blob([logData], { type: 'application/json' });
+            url = URL.createObjectURL(blob);
+        } else {
+            debugLog('URL.createObjectURL not available for logs; using data URL', 'warn');
+        }
+    } catch (e) {
+        debugLog(`createObjectURL failed for logs: ${e.message}; using data URL`, 'warn');
+    }
+    if (!url) {
+        url = 'data:application/json;charset=utf-8,' + encodeURIComponent(logData);
+    }
     
     // Open in a new tab for download
     chrome.tabs.create({ 
