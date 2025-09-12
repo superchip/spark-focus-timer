@@ -307,6 +307,15 @@ class SparkTimer {
             this.debug('Timer resumed', 'info');
         } else {
             // Start new session
+            // If user is currently in a break (running or idle) but clicks Start Focus explicitly (button label shows Start Focus)
+            // we should ensure we can switch to focus if currentSession is a break and timeLeft is at full duration (not started) OR running break and user wants focus again.
+            const startBtn = document.getElementById('startBtn');
+            const wantsFocus = startBtn && startBtn.textContent.includes('Focus');
+            if (wantsFocus && (this.currentSession === 'shortBreak' || this.currentSession === 'longBreak')) {
+                this.debug('User requested to start focus while on break - switching to focus early', 'info');
+                this.currentSession = 'focus';
+            }
+
             this.timeLeft = this.getCurrentSessionDuration() * 60;
             this.totalTime = this.timeLeft;
             this.debug(`Starting ${this.currentSession} session (${this.getCurrentSessionDuration()} minutes)`, 'info');

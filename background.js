@@ -898,6 +898,10 @@ async function startNextSessionFromNotification(sessionType) {
         let actualSessionType;
         
         if (sessionType === 'focus') {
+            // If a break is currently running and user chose to start focus early, terminate break early
+            if ((timerState.currentSession === 'shortBreak' || timerState.currentSession === 'longBreak') && timerState.isRunning) {
+                debugLog('Early break termination requested - starting focus immediately', 'info');
+            }
             actualSessionType = 'focus';
             duration = settings.focusDuration;
         } else {
@@ -925,7 +929,7 @@ async function startNextSessionFromNotification(sessionType) {
             }
         }
         
-        // Update timer state to running
+        // Update timer state to running (if we terminated a running break early we still keep sessionCount unchanged)
         const newTimerState = {
             isRunning: true,
             currentSession: actualSessionType,
