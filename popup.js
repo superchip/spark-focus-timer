@@ -193,6 +193,12 @@ class SparkTimer {
                         await this.loadStats();
                         this.debug('Timer state reloaded after notification start', 'info');
                     }, 100); // Small delay to ensure background script has finished
+                } else if (message.action === 'breakContentOpened') {
+                    // Background confirmed break content tab opened
+                    this.debug(`Break content opened (${message.type})`, 'info');
+                    this.breakContentOpened = true;
+                    // Persist flag in timer state if session still running
+                    this.saveTimerState();
                 } else if (message.action === 'checkIfPopupOpen') {
                     // Background is checking if popup is open - respond to confirm
                     this.debug('Background script checking if popup is open - responding', 'info');

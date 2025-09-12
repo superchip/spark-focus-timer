@@ -280,10 +280,20 @@ async function openBreakContent(type, url) {
             case 'quote':
                 debugLog('Fetching inspirational quote', 'info');
                 const quoteData = await fetchJsonData(url);
-                if (quoteData && quoteData.data && quoteData.data.quoteText) {
-                    content = `"${quoteData.data.quoteText}" - ${quoteData.data.quoteAuthor || 'Unknown'}`;
-                    finalUrl = createContentPage('Inspirational Quote', content, '💭');
-                    debugLog('Successfully created quote content page', 'info');
+                if (quoteData && quoteData.data) {
+                    let quoteObj = null;
+                    if (Array.isArray(quoteData.data) && quoteData.data.length > 0) {
+                        quoteObj = quoteData.data[0];
+                    } else if (quoteData.data.quoteText) {
+                        quoteObj = quoteData.data; // legacy/non-array structure
+                    }
+                    if (quoteObj && quoteObj.quoteText) {
+                        content = `"${quoteObj.quoteText}" - ${quoteObj.quoteAuthor || 'Unknown'}`;
+                        finalUrl = createContentPage('Inspirational Quote', content, '💭');
+                        debugLog('Successfully created quote content page', 'info');
+                    } else {
+                        debugLog('Quote data structure unexpected', 'warn');
+                    }
                 } else {
                     debugLog('Failed to fetch quote data', 'warn');
                 }
@@ -317,6 +327,8 @@ async function openBreakContent(type, url) {
         if (finalUrl) {
             chrome.tabs.create({ url: finalUrl });
             debugLog('Successfully opened tab with content', 'info');
+            // Notify popup (if open) that content was opened
+            chrome.runtime.sendMessage({ action: 'breakContentOpened', type, url: finalUrl }).catch(() => {});
         } else {
             debugLog('No content URL generated', 'warn');
         }
