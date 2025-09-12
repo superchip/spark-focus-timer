@@ -158,6 +158,10 @@ class SparkTimer {
         document.getElementById('startBtn').addEventListener('click', () => this.startSession());
         document.getElementById('pauseBtn').addEventListener('click', () => this.pauseSession());
         document.getElementById('resetBtn').addEventListener('click', () => this.resetSession());
+        const skipBreakBtn = document.getElementById('skipBreakBtn');
+        if (skipBreakBtn) {
+            skipBreakBtn.addEventListener('click', () => this.skipBreakToFocus());
+        }
         document.getElementById('settingsBtn').addEventListener('click', () => this.showSettings());
         document.getElementById('closeSettings').addEventListener('click', () => this.hideSettings());
         document.getElementById('debugBtn').addEventListener('click', () => this.showDebugConsole());
@@ -574,6 +578,7 @@ class SparkTimer {
     updateControls() {
         const startBtn = document.getElementById('startBtn');
         const pauseBtn = document.getElementById('pauseBtn');
+    const skipBreakBtn = document.getElementById('skipBreakBtn');
         
         if (this.isRunning) {
             startBtn.style.display = 'none';
@@ -594,6 +599,43 @@ class SparkTimer {
                 startBtn.textContent = sessionLabels[this.currentSession];
             }
         }
+
+        // Skip Break button visibility
+        if (skipBreakBtn) {
+            // Show only during a running break session
+            if (this.isRunning && (this.currentSession === 'shortBreak' || this.currentSession === 'longBreak')) {
+                skipBreakBtn.style.display = 'inline-block';
+            } else {
+                skipBreakBtn.style.display = 'none';
+            }
+        }
+    }
+
+    // Allow user to end the current break early and jump into a fresh focus session
+    skipBreakToFocus() {
+        if (!(this.currentSession === 'shortBreak' || this.currentSession === 'longBreak')) return;
+        this.debug('Skip Break activated - switching immediately to focus session', 'info');
+        // Stop current timers
+        if (this.interval) {
+            clearInterval(this.interval);
+            this.interval = null;
+        }
+        chrome.runtime.sendMessage({ action: 'stopBackgroundTimer' });
+
+        // Transition to focus
+        this.currentSession = 'focus';
+        this.isRunning = false; // We'll start a new session below
+        this.isPaused = false;
+        this.breakContentOpened = false;
+        this.timeLeft = this.settings.focusDuration * 60;
+        this.totalTime = this.timeLeft;
+        this.saveIdleTimerState(); // Persist non-running state right before starting
+        this.updateDisplay();
+        this.updateControls();
+
+        // Automatically start the focus session (common expectation when skipping)
+        this.startSession();
+        this.debug('Focus session started after skipping break', 'info');
     }
 
     updateBreakPreview() {
