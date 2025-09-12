@@ -45,6 +45,7 @@ class SparkTimer {
         await this.loadStats();
         await this.loadDebugLogs();
         this.setupEventListeners();
+        this.setupMessageListener();
         this.updateDisplay();
         this.updateBreakPreview();
         this.setupSettingsPanel();
@@ -65,6 +66,11 @@ class SparkTimer {
 
     async loadStats() {
         const result = await chrome.storage.local.get(['stats', 'timerState']);
+        this.debug(`Loading stats, timerState found: ${!!result.timerState}`, 'info');
+        
+        if (result.timerState) {
+            this.debug(`Timer state: session=${result.timerState.currentSession}, running=${result.timerState.isRunning}, timeLeft=${result.timerState.timeLeft}`, 'info');
+        }
         
         // Load stats
         if (result.stats) {
@@ -77,9 +83,11 @@ class SparkTimer {
         // Restore timer state if it exists
         if (result.timerState) {
             if (result.timerState.isRunning) {
+                this.debug('Restoring running timer state', 'info');
                 this.restoreTimerState(result.timerState);
             } else {
                 // Timer is not running but we should restore the session info
+                this.debug('Restoring non-running timer state', 'info');
                 this.currentSession = result.timerState.currentSession;
                 this.sessionCount = result.timerState.sessionCount;
                 this.timeLeft = result.timerState.timeLeft;
@@ -90,6 +98,14 @@ class SparkTimer {
                 this.updateControls();
                 this.updateBreakPreview();
             }
+        } else {
+            this.debug('No timer state found, using defaults', 'info');
+            // Set default time for focus session
+            this.timeLeft = this.settings.focusDuration * 60;
+            this.totalTime = this.timeLeft;
+            this.updateDisplay();
+            this.updateControls();
+            this.updateBreakPreview();
         }
     }
 
@@ -156,6 +172,60 @@ class SparkTimer {
         document.getElementById('resetStats').addEventListener('click', () => this.resetStats());
         document.getElementById('inspectStorage').addEventListener('click', () => this.inspectStorage());
         document.getElementById('clearAllStorage').addEventListener('click', () => this.clearAllStorage());
+    }
+
+    setupMessageListener() {
+        // Listen for messages from background script
+        chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+            try {
+                if (message.action === 'sessionStartedFromNotification') {
+                    this.debug(`Received session start notification: ${message.sessionType}`, 'info');
+                    // Force reload the timer state to get the latest information
+                    setTimeout(async () => {
+                        await this.loadStats();
+                        this.debug('Timer state reloaded after notification start', 'info');
+                    }, 100); // Small delay to ensure background script has finished
+                } else if (message.action === 'checkIfPopupOpen') {
+                    // Background is checking if popup is open - respond to confirm
+                    this.debug('Background script checking if popup is open - responding', 'info');
+                    sendResponse({ popupOpen: true });
+                    return true; // Keep message channel open for response
+                } else if (message.action === 'startSessionFromNotification') {
+                    // Background wants us to start a session since popup is already open
+                    this.debug(`Starting ${message.sessionType} session from notification in current popup`, 'info');
+                    this.startSessionFromNotificationMessage(message.sessionType);
+                }
+            } catch (error) {
+                this.debug(`Error handling message: ${error.message}`, 'error');
+            }
+        });
+    }
+
+    async startSessionFromNotificationMessage(sessionType) {
+        try {
+            // Load the current timer state first to ensure we have the latest info
+            const result = await chrome.storage.local.get(['timerState']);
+            
+            if (!result.timerState) {
+                this.debug('No timer state found for notification session start', 'warn');
+                return;
+            }
+            
+            // Update our internal state to match the stored state
+            this.currentSession = result.timerState.currentSession;
+            this.sessionCount = result.timerState.sessionCount;
+            this.timeLeft = result.timerState.timeLeft;
+            this.totalTime = result.timerState.totalTime;
+            this.breakContentOpened = result.timerState.breakContentOpened || false;
+            
+            this.debug(`Starting ${this.currentSession} session in popup from notification`, 'info');
+            
+            // Start the session (this will trigger the normal flow)
+            this.startSession();
+            
+        } catch (error) {
+            this.debug(`Error starting session from notification message: ${error.message}`, 'error');
+        }
     }
 
     setupSettingsPanel() {
@@ -371,7 +441,10 @@ class SparkTimer {
         this.updateDisplay();
         this.updateControls();
         this.updateBreakPreview();
-        this.clearTimerState();
+    // Persist the new (non-running) timer state so background notification actions
+    // know which upcoming session to start (fixes Start Break showing focus issue)
+    await this.saveIdleTimerState();
+    this.debug('Saved idle timer state after session completion', 'info');
     }
 
     async openBreakContent() {
@@ -468,12 +541,13 @@ class SparkTimer {
 
         // Update body class
         document.body.className = '';
-        if (this.isRunning) {
-            if (this.currentSession === 'focus') {
+        if (this.currentSession === 'focus') {
+            if (this.isRunning) {
                 document.body.classList.add('timer-active');
-            } else {
-                document.body.classList.add('break-active');
             }
+        } else {
+            // For break sessions, show break styling whether running or ready to start
+            document.body.classList.add('break-active');
         }
     }
 
@@ -608,6 +682,21 @@ class SparkTimer {
             };
             await chrome.storage.local.set({ timerState: state });
         }
+    }
+
+    // Save a non-running (idle) timer state so that notification actions can start
+    // the correct next session even if popup is closed.
+    async saveIdleTimerState() {
+        const state = {
+            isRunning: false,
+            currentSession: this.currentSession,
+            sessionCount: this.sessionCount,
+            timeLeft: this.timeLeft,
+            totalTime: this.totalTime,
+            startTime: null,
+            breakContentOpened: this.breakContentOpened
+        };
+        await chrome.storage.local.set({ timerState: state });
     }
 
     async clearTimerState() {

@@ -782,26 +782,96 @@ chrome.notifications.onButtonClicked.addListener(async (notificationId, buttonIn
         if (sessionType === 'focus' && buttonIndex === 0) {
             // Start break button clicked
             debugLog('Starting break session from notification', 'info');
-            await startNextSessionFromNotification('break');
+            await handleSessionStartFromNotification('break', notificationId);
         } else if (sessionType === 'break' && buttonIndex === 0) {
             // Start focus button clicked
             debugLog('Starting focus session from notification', 'info');
-            await startNextSessionFromNotification('focus');
+            await handleSessionStartFromNotification('focus', notificationId);
         } else if (buttonIndex === 1) {
             // Open extension button clicked
             chrome.action.openPopup().catch(() => {
                 debugLog('Could not open popup from button click', 'warn');
             });
+            // Clear notification immediately for "Open Extension" button
+            chrome.notifications.clear(notificationId);
+            chrome.storage.local.remove([`notification_${notificationId}`]);
         }
-        
-        // Clear the notification and clean up data
-        chrome.notifications.clear(notificationId);
-        chrome.storage.local.remove([`notification_${notificationId}`]);
         
     } catch (error) {
         debugLog(`Error handling button click: ${error.message}`, 'error');
+        // Clean up on error
+        chrome.notifications.clear(notificationId);
+        chrome.storage.local.remove([`notification_${notificationId}`]);
     }
 });
+
+// Handle session start from notification with popup detection
+async function handleSessionStartFromNotification(sessionType, notificationId) {
+    try {
+        // Try to send a message to check if popup is open
+        let popupIsOpen = false;
+        
+        try {
+            const response = await new Promise((resolve, reject) => {
+                chrome.runtime.sendMessage({
+                    action: 'checkIfPopupOpen'
+                }, (response) => {
+                    if (chrome.runtime.lastError) {
+                        reject(chrome.runtime.lastError);
+                    } else {
+                        resolve(response);
+                    }
+                });
+                
+                // Timeout after 100ms if no response (popup likely not open)
+                setTimeout(() => reject(new Error('Timeout')), 100);
+            });
+            
+            if (response && response.popupOpen) {
+                popupIsOpen = true;
+                debugLog('Popup is open, starting session in current popup', 'info');
+            }
+        } catch (error) {
+            popupIsOpen = false;
+            debugLog('Popup is not open, will open popup and start session', 'info');
+        }
+        
+        if (popupIsOpen) {
+            // Popup is open - just send start command to popup
+            chrome.runtime.sendMessage({
+                action: 'startSessionFromNotification',
+                sessionType: sessionType
+            }).catch(() => {
+                debugLog('Failed to send start session message to popup', 'error');
+            });
+            
+            // Clear notification immediately since popup will handle everything
+            chrome.notifications.clear(notificationId);
+            chrome.storage.local.remove([`notification_${notificationId}`]);
+            
+        } else {
+            // Popup is not open - start session in background, then open popup
+            await startNextSessionFromNotification(sessionType);
+            
+            // Open the popup to show the running timer
+            chrome.action.openPopup().catch(() => {
+                debugLog('Could not open popup after starting session', 'warn');
+            });
+            
+            // Clear notification after a delay to ensure popup has time to open
+            setTimeout(() => {
+                chrome.notifications.clear(notificationId);
+                chrome.storage.local.remove([`notification_${notificationId}`]);
+            }, 300);
+        }
+        
+    } catch (error) {
+        debugLog(`Error handling session start from notification: ${error.message}`, 'error');
+        // Fallback: clear notification
+        chrome.notifications.clear(notificationId);
+        chrome.storage.local.remove([`notification_${notificationId}`]);
+    }
+}
 
 // Start next session from notification button
 async function startNextSessionFromNotification(sessionType) {
@@ -816,7 +886,7 @@ async function startNextSessionFromNotification(sessionType) {
         
         const timerState = result.timerState;
         
-        // Determine session duration
+        // Determine session duration and actual session type
         const settingsResult = await chrome.storage.sync.get(['settings']);
         const settings = settingsResult.settings || {
             focusDuration: 25,
@@ -825,21 +895,40 @@ async function startNextSessionFromNotification(sessionType) {
         };
         
         let duration;
+        let actualSessionType;
+        
         if (sessionType === 'focus') {
+            actualSessionType = 'focus';
             duration = settings.focusDuration;
         } else {
-            // For break, use the current session type from timer state
-            if (timerState.currentSession === 'longBreak') {
-                duration = settings.longBreak;
+            // For break start we expect timerState.currentSession to already be shortBreak or longBreak
+            // If it's still 'focus', it means the completion handler didn't persist idle state yet.
+            if (timerState.currentSession === 'focus') {
+                // Derive which break should come next based on sessionCount + 1 (focus just finished)
+                const nextCount = timerState.sessionCount + 1;
+                if (nextCount % 4 === 0) {
+                    actualSessionType = 'longBreak';
+                    duration = settings.longBreak;
+                    debugLog('Derived longBreak session (fallback) because state still showed focus', 'warn');
+                } else {
+                    actualSessionType = 'shortBreak';
+                    duration = settings.shortBreak;
+                    debugLog('Derived shortBreak session (fallback) because state still showed focus', 'warn');
+                }
             } else {
-                duration = settings.shortBreak;
+                actualSessionType = timerState.currentSession; // shortBreak or longBreak
+                if (timerState.currentSession === 'longBreak') {
+                    duration = settings.longBreak;
+                } else {
+                    duration = settings.shortBreak;
+                }
             }
         }
         
         // Update timer state to running
         const newTimerState = {
             isRunning: true,
-            currentSession: timerState.currentSession, // Keep the session type that was set
+            currentSession: actualSessionType,
             sessionCount: timerState.sessionCount,
             timeLeft: duration * 60,
             totalTime: duration * 60,
@@ -847,24 +936,37 @@ async function startNextSessionFromNotification(sessionType) {
             breakContentOpened: false
         };
         
+        // Save the new timer state first
         await chrome.storage.local.set({ timerState: newTimerState });
+        debugLog(`Timer state saved: ${actualSessionType}, running: true`, 'info');
         
         // Start background timer
         startBackgroundTimer(duration, {
-            type: timerState.currentSession,
+            type: actualSessionType,
             sessionCount: timerState.sessionCount
         });
         
-        // If starting a break session, open break content
+        // If starting a break session, open break content and update state
         if (sessionType === 'break') {
             await openBreakContentBackground(settings);
             
-            // Mark break content as opened
+            // Mark break content as opened and save again
             newTimerState.breakContentOpened = true;
             await chrome.storage.local.set({ timerState: newTimerState });
+            debugLog('Break content opened and state updated', 'info');
         }
         
-        debugLog(`Started ${sessionType} session from notification (${duration} minutes)`, 'info');
+        debugLog(`Started ${actualSessionType} session from notification (${duration} minutes)`, 'info');
+        
+        // Notify any open popup that the session has started
+        chrome.runtime.sendMessage({
+            action: 'sessionStartedFromNotification',
+            sessionType: actualSessionType,
+            timeLeft: duration * 60
+        }).catch(() => {
+            // Popup might not be open, which is fine
+            debugLog('No popup to notify about session start', 'info');
+        });
         
     } catch (error) {
         debugLog(`Error starting session from notification: ${error.message}`, 'error');
