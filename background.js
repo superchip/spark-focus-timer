@@ -193,32 +193,29 @@ function showNotification(title, message, sessionType = null) {
         iconUrl: 'icons/icon48.png',
         title: title,
         message: message,
-        priority: 2,
-        requireInteraction: true // Keep notification visible until user interacts
+    priority: 2,
+    requireInteraction: false // Allow auto-dismiss; we'll also set a manual timeout
     };
     
     // Add action buttons based on session type
     if (sessionType) {
         notificationOptions.buttons = [];
-        
         if (sessionType === 'focus') {
-            // Focus session completed - offer to start break
             notificationOptions.buttons.push({
                 title: '🌿 Start Break',
                 iconUrl: 'icons/icon32.png'
             });
             notificationOptions.buttons.push({
-                title: '📱 Open Extension',
+                title: '✖ Dismiss',
                 iconUrl: 'icons/icon32.png'
             });
         } else if (sessionType === 'break') {
-            // Break session completed - offer to start focus
             notificationOptions.buttons.push({
                 title: '⚡ Start Focus',
                 iconUrl: 'icons/icon32.png'
             });
             notificationOptions.buttons.push({
-                title: '📱 Open Extension',
+                title: '✖ Dismiss',
                 iconUrl: 'icons/icon32.png'
             });
         }
@@ -241,13 +238,23 @@ function showNotification(title, message, sessionType = null) {
                 });
             } else {
                 debugLog(`Notification created successfully: ${notificationId}`, 'info');
-                
                 // Store session type for button handling
                 if (sessionType) {
                     chrome.storage.local.set({ 
                         [`notification_${notificationId}`]: { sessionType: sessionType }
                     });
                 }
+                // Manual auto-dismiss after 12s if still present
+                setTimeout(async () => {
+                    try {
+                        // Attempt to clear; if already cleared nothing happens
+                        await chrome.notifications.clear(notificationId);
+                        chrome.storage.local.remove([`notification_${notificationId}`]);
+                        debugLog(`Notification auto-dismissed: ${notificationId}`,'info');
+                    } catch (e) {
+                        // Ignore
+                    }
+                }, 12000);
             }
         });
     } catch (error) {
@@ -744,17 +751,9 @@ chrome.storage.local.get(['backgroundDebugLogs'], (result) => {
 chrome.notifications.onClicked.addListener((notificationId) => {
     debugLog(`Notification clicked: ${notificationId}`, 'info');
     
-    // Clear the notification
+    // Body click just dismisses (per spec)
     chrome.notifications.clear(notificationId);
-    
-    // Clean up stored notification data
     chrome.storage.local.remove([`notification_${notificationId}`]);
-    
-    // Focus on the extension or open popup
-    chrome.action.openPopup().catch(() => {
-        // If popup can't be opened, at least clear the notification
-        debugLog('Could not open popup from notification click', 'warn');
-    });
 });
 
 // Handle notification button clicks
@@ -783,11 +782,8 @@ chrome.notifications.onButtonClicked.addListener(async (notificationId, buttonIn
             debugLog('Starting focus session from notification', 'info');
             await handleSessionStartFromNotification('focus', notificationId);
         } else if (buttonIndex === 1) {
-            // Open extension button clicked
-            chrome.action.openPopup().catch(() => {
-                debugLog('Could not open popup from button click', 'warn');
-            });
-            // Clear notification immediately for "Open Extension" button
+            // Dismiss button
+            debugLog('Dismiss button clicked', 'info');
             chrome.notifications.clear(notificationId);
             chrome.storage.local.remove([`notification_${notificationId}`]);
         }
