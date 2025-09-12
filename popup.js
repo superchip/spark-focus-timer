@@ -74,9 +74,22 @@ class SparkTimer {
             }
         }
 
-        // Restore timer state if running
-        if (result.timerState && result.timerState.isRunning) {
-            this.restoreTimerState(result.timerState);
+        // Restore timer state if it exists
+        if (result.timerState) {
+            if (result.timerState.isRunning) {
+                this.restoreTimerState(result.timerState);
+            } else {
+                // Timer is not running but we should restore the session info
+                this.currentSession = result.timerState.currentSession;
+                this.sessionCount = result.timerState.sessionCount;
+                this.timeLeft = result.timerState.timeLeft;
+                this.totalTime = result.timerState.totalTime;
+                this.breakContentOpened = result.timerState.breakContentOpened || false;
+                this.debug(`Restored timer state for ${this.currentSession} session (not running)`, 'info');
+                this.updateDisplay();
+                this.updateControls();
+                this.updateBreakPreview();
+            }
         }
     }
 
@@ -107,15 +120,15 @@ class SparkTimer {
             // Timer finished while popup was closed - check if background handled it
             const result = await chrome.storage.local.get(['timerState']);
             if (result.timerState && !result.timerState.isRunning) {
-                // Background script already handled completion
+                // Background script already handled completion - use its state
                 this.currentSession = result.timerState.currentSession;
                 this.sessionCount = result.timerState.sessionCount;
                 this.timeLeft = result.timerState.timeLeft;
                 this.totalTime = result.timerState.totalTime;
-                this.breakContentOpened = false; // Reset for new session
+                this.breakContentOpened = result.timerState.breakContentOpened || false;
                 this.debug('Timer state restored from background completion', 'info');
             } else {
-                // Handle completion now
+                // Handle completion now (background didn't handle it yet)
                 this.handleSessionComplete();
             }
         }
@@ -754,7 +767,8 @@ class SparkTimer {
         chrome.runtime.sendMessage({
             action: 'showNotification',
             title: '🧪 Test Notification',
-            message: 'This is a test notification from the debug console!'
+            message: 'This is a test notification from the debug console!',
+            sessionType: 'focus' // Test with focus session type to show buttons
         });
     }
 
@@ -892,13 +906,15 @@ class SparkTimer {
             chrome.runtime.sendMessage({
                 action: 'showNotification',
                 title: '⚡ Focus Session Complete!',
-                message: 'Great work! Click the extension to start your break when ready.'
+                message: 'Great work! Click the extension to start your break when ready.',
+                sessionType: 'focus'
             });
         } else {
             chrome.runtime.sendMessage({
                 action: 'showNotification',
                 title: '⏰ Break Time Over!',
-                message: 'Ready to focus again? Let\'s spark some productivity!'
+                message: 'Ready to focus again? Let\'s spark some productivity!',
+                sessionType: 'break'
             });
         }
     }

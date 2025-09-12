@@ -75,7 +75,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     
     switch (request.action) {
         case 'showNotification':
-            showNotification(request.title, request.message);
+            showNotification(request.title, request.message, request.sessionType);
             break;
         case 'openBreakContent':
             openBreakContent(request.type, request.url);
@@ -184,23 +184,55 @@ function stopBackgroundTimer() {
 }
 
 // Show notification
-function showNotification(title, message) {
+function showNotification(title, message, sessionType = null) {
     debugLog(`Showing notification: ${title}`, 'info');
+    
+    // Create notification options
+    const notificationOptions = {
+        type: 'basic',
+        iconUrl: 'icons/icon48.png',
+        title: title,
+        message: message,
+        priority: 2,
+        requireInteraction: true // Keep notification visible until user interacts
+    };
+    
+    // Add action buttons based on session type
+    if (sessionType) {
+        notificationOptions.buttons = [];
+        
+        if (sessionType === 'focus') {
+            // Focus session completed - offer to start break
+            notificationOptions.buttons.push({
+                title: '🌿 Start Break',
+                iconUrl: 'icons/icon32.png'
+            });
+            notificationOptions.buttons.push({
+                title: '📱 Open Extension',
+                iconUrl: 'icons/icon32.png'
+            });
+        } else if (sessionType === 'break') {
+            // Break session completed - offer to start focus
+            notificationOptions.buttons.push({
+                title: '⚡ Start Focus',
+                iconUrl: 'icons/icon32.png'
+            });
+            notificationOptions.buttons.push({
+                title: '📱 Open Extension',
+                iconUrl: 'icons/icon32.png'
+            });
+        }
+    }
     
     // Try to create notification with error handling
     try {
         chrome.notifications.create({
-            type: 'basic',
-            iconUrl: 'icons/icon48.png',
-            title: title,
-            message: message,
-            priority: 2,
-            requireInteraction: true // Keep notification visible until user interacts
+            ...notificationOptions
         }, (notificationId) => {
             if (chrome.runtime.lastError) {
                 debugLog(`Notification error: ${chrome.runtime.lastError.message}`, 'error');
                 
-                // Fallback: try simpler notification
+                // Fallback: try simpler notification without buttons
                 chrome.notifications.create({
                     type: 'basic',
                     iconUrl: 'icons/icon48.png',
@@ -209,6 +241,13 @@ function showNotification(title, message) {
                 });
             } else {
                 debugLog(`Notification created successfully: ${notificationId}`, 'info');
+                
+                // Store session type for button handling
+                if (sessionType) {
+                    chrome.storage.local.set({ 
+                        [`notification_${notificationId}`]: { sessionType: sessionType }
+                    });
+                }
             }
         });
     } catch (error) {
@@ -540,9 +579,9 @@ async function handleTimerComplete() {
         // Show completion notification
         if (settings.enableNotifications) {
             if (timerState.currentSession === 'focus') {
-                showNotification('⚡ Focus Session Complete!', 'Great work! Click the extension to start your break when ready.');
+                showNotification('⚡ Focus Session Complete!', 'Great work! Click the extension to start your break when ready.', 'focus');
             } else {
-                showNotification('⏰ Break Time Over!', 'Ready to focus again? Let\'s spark some productivity!');
+                showNotification('⏰ Break Time Over!', 'Ready to focus again? Let\'s spark some productivity!', 'break');
             }
         }
         
@@ -713,6 +752,9 @@ chrome.notifications.onClicked.addListener((notificationId) => {
     // Clear the notification
     chrome.notifications.clear(notificationId);
     
+    // Clean up stored notification data
+    chrome.storage.local.remove([`notification_${notificationId}`]);
+    
     // Focus on the extension or open popup
     chrome.action.openPopup().catch(() => {
         // If popup can't be opened, at least clear the notification
@@ -720,9 +762,121 @@ chrome.notifications.onClicked.addListener((notificationId) => {
     });
 });
 
+// Handle notification button clicks
+chrome.notifications.onButtonClicked.addListener(async (notificationId, buttonIndex) => {
+    debugLog(`Notification button clicked: ${notificationId}, button: ${buttonIndex}`, 'info');
+    
+    try {
+        // Get the stored notification data
+        const result = await chrome.storage.local.get([`notification_${notificationId}`]);
+        const notificationData = result[`notification_${notificationId}`];
+        
+        if (!notificationData) {
+            debugLog('No notification data found', 'warn');
+            return;
+        }
+        
+        const { sessionType } = notificationData;
+        
+        // Handle button clicks based on session type and button index
+        if (sessionType === 'focus' && buttonIndex === 0) {
+            // Start break button clicked
+            debugLog('Starting break session from notification', 'info');
+            await startNextSessionFromNotification('break');
+        } else if (sessionType === 'break' && buttonIndex === 0) {
+            // Start focus button clicked
+            debugLog('Starting focus session from notification', 'info');
+            await startNextSessionFromNotification('focus');
+        } else if (buttonIndex === 1) {
+            // Open extension button clicked
+            chrome.action.openPopup().catch(() => {
+                debugLog('Could not open popup from button click', 'warn');
+            });
+        }
+        
+        // Clear the notification and clean up data
+        chrome.notifications.clear(notificationId);
+        chrome.storage.local.remove([`notification_${notificationId}`]);
+        
+    } catch (error) {
+        debugLog(`Error handling button click: ${error.message}`, 'error');
+    }
+});
+
+// Start next session from notification button
+async function startNextSessionFromNotification(sessionType) {
+    try {
+        // Get current timer state
+        const result = await chrome.storage.local.get(['timerState']);
+        
+        if (!result.timerState) {
+            debugLog('No timer state found for notification action', 'warn');
+            return;
+        }
+        
+        const timerState = result.timerState;
+        
+        // Determine session duration
+        const settingsResult = await chrome.storage.sync.get(['settings']);
+        const settings = settingsResult.settings || {
+            focusDuration: 25,
+            shortBreak: 5,
+            longBreak: 30
+        };
+        
+        let duration;
+        if (sessionType === 'focus') {
+            duration = settings.focusDuration;
+        } else {
+            // For break, use the current session type from timer state
+            if (timerState.currentSession === 'longBreak') {
+                duration = settings.longBreak;
+            } else {
+                duration = settings.shortBreak;
+            }
+        }
+        
+        // Update timer state to running
+        const newTimerState = {
+            isRunning: true,
+            currentSession: timerState.currentSession, // Keep the session type that was set
+            sessionCount: timerState.sessionCount,
+            timeLeft: duration * 60,
+            totalTime: duration * 60,
+            startTime: Date.now(),
+            breakContentOpened: false
+        };
+        
+        await chrome.storage.local.set({ timerState: newTimerState });
+        
+        // Start background timer
+        startBackgroundTimer(duration, {
+            type: timerState.currentSession,
+            sessionCount: timerState.sessionCount
+        });
+        
+        // If starting a break session, open break content
+        if (sessionType === 'break') {
+            await openBreakContentBackground(settings);
+            
+            // Mark break content as opened
+            newTimerState.breakContentOpened = true;
+            await chrome.storage.local.set({ timerState: newTimerState });
+        }
+        
+        debugLog(`Started ${sessionType} session from notification (${duration} minutes)`, 'info');
+        
+    } catch (error) {
+        debugLog(`Error starting session from notification: ${error.message}`, 'error');
+    }
+}
+
 // Handle notification close
 chrome.notifications.onClosed.addListener((notificationId, byUser) => {
     debugLog(`Notification closed: ${notificationId}, by user: ${byUser}`, 'info');
+    
+    // Clean up stored notification data when notification is closed
+    chrome.storage.local.remove([`notification_${notificationId}`]);
 });
 
 // Handle debug commands
