@@ -97,12 +97,22 @@ body {
     position: relative;
 }
 
+.progress-timer {
+    position: relative;
+    width: 140px;
+    height: 140px;
+    margin: 0 auto 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .time-left {
-    font-size: 48px;
-    font-weight: 300;
-    color: white;
-    margin-bottom: 8px;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    font-size: 46px;
+    font-weight: 500;
+    color: #fff;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.35);
+    position: absolute;
 }
 
 .session-type {
@@ -111,32 +121,28 @@ body {
     margin-bottom: 20px;
 }
 
-.progress-ring {
+.progress-ring-svg { transform: rotate(-90deg); }
+.progress-ring-circle-bg { fill: none; stroke: rgba(255,255,255,0.15); stroke-width: 6; }
+.progress-ring-circle { fill: none; stroke: #fff; stroke-width: 6; stroke-linecap: round; stroke-dasharray: 402.12; stroke-dashoffset: 402.12; transition: stroke-dashoffset 1s linear, stroke 0.3s ease; filter: drop-shadow(0 0 4px rgba(255,255,255,0.35)); }
+
+body.timer-active .progress-ring-circle { stroke: #4ade80; }
+body.break-active .progress-ring-circle { stroke: #fbbf24; }
+
+/* Animated subtle pulse when running */
+body.timer-active .progress-timer:after, body.break-active .progress-timer:after {
+    content: '';
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.25), transparent 70%);
+    animation: pulse 3s ease-in-out infinite;
     pointer-events: none;
+    opacity: 0.4;
 }
 
-.progress-ring-svg {
-    transform: rotate(-90deg);
-}
-
-.progress-ring-circle-bg {
-    fill: none;
-    stroke: rgba(255, 255, 255, 0.2);
-    stroke-width: 4;
-}
-
-.progress-ring-circle {
-    fill: none;
-    stroke: #fff;
-    stroke-width: 4;
-    stroke-linecap: round;
-    stroke-dasharray: 326.72;
-    stroke-dashoffset: 326.72;
-    transition: stroke-dashoffset 1s ease;
+@keyframes pulse {
+    0%,100% { transform: scale(0.95); opacity: 0.35; }
+    50% { transform: scale(1.05); opacity: 0.55; }
 }
 
 /* Controls */

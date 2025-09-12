@@ -558,10 +558,12 @@ class SparkTimer {
         document.getElementById('sessionType').textContent = sessionLabels[this.currentSession];
         
         // Update progress ring
-        const progress = this.totalTime > 0 ? (this.totalTime - this.timeLeft) / this.totalTime : 0;
-        const circumference = 2 * Math.PI * 52;
-        const offset = circumference - (progress * circumference);
-        document.getElementById('progressCircle').style.strokeDashoffset = offset;
+    const progress = this.totalTime > 0 ? (this.totalTime - this.timeLeft) / this.totalTime : 0;
+    const radius = 64; // updated SVG circle radius
+    const circumference = 2 * Math.PI * radius;
+    const offset = circumference - (progress * circumference);
+    const circleEl = document.getElementById('progressCircle');
+    if (circleEl) circleEl.style.strokeDashoffset = offset;
 
         // Update body class
         document.body.className = '';
