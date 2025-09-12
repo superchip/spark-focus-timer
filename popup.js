@@ -302,31 +302,38 @@ class SparkTimer {
     }
 
     startSession() {
+        // Prevent multiple intervals (double-speed bug) by clearing any existing interval first
+        if (this.interval) {
+            clearInterval(this.interval);
+            this.interval = null;
+        }
+
         if (this.isPaused) {
             this.isPaused = false;
             this.debug('Timer resumed', 'info');
         } else {
-            // Start new session
-            // If user is currently in a break (running or idle) but clicks Start Focus explicitly (button label shows Start Focus)
-            // we should ensure we can switch to focus if currentSession is a break and timeLeft is at full duration (not started) OR running break and user wants focus again.
+            // Start new (or replacement) session
             const startBtn = document.getElementById('startBtn');
             const wantsFocus = startBtn && startBtn.textContent.includes('Focus');
-            if (wantsFocus && (this.currentSession === 'shortBreak' || this.currentSession === 'longBreak')) {
-                this.debug('User requested to start focus while on break - switching to focus early', 'info');
+            const switchingEarlyFromBreak = wantsFocus && (this.currentSession === 'shortBreak' || this.currentSession === 'longBreak');
+            if (switchingEarlyFromBreak) {
+                this.debug('User requested to start focus while break running/active - terminating break early', 'info');
                 this.currentSession = 'focus';
+                // Reset break content flag since we are moving back to focus
+                this.breakContentOpened = false;
             }
 
             this.timeLeft = this.getCurrentSessionDuration() * 60;
             this.totalTime = this.timeLeft;
             this.debug(`Starting ${this.currentSession} session (${this.getCurrentSessionDuration()} minutes)`, 'info');
-            
+
             // Open break content when starting a break session (only once per session)
             if ((this.currentSession === 'shortBreak' || this.currentSession === 'longBreak') && !this.breakContentOpened) {
                 this.openBreakContent();
                 this.breakContentOpened = true;
             }
         }
-        
+
         this.isRunning = true;
         this.startTimer();
         this.updateControls();
