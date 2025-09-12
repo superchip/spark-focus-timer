@@ -82,6 +82,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             break;
         case 'startBackgroundTimer':
             startBackgroundTimer(request.duration, request.sessionInfo);
+            
+            // Open break content if this is a break session starting
+            if (request.sessionInfo && 
+                (request.sessionInfo.type === 'shortBreak' || request.sessionInfo.type === 'longBreak')) {
+                chrome.storage.sync.get(['settings']).then(settingsResult => {
+                    const settings = settingsResult.settings || {
+                        enableFacts: true,
+                        enableQuotes: true,
+                        enableWebsites: true,
+                        enableNasa: true
+                    };
+                    openBreakContentBackground(settings);
+                });
+            }
             break;
         case 'stopBackgroundTimer':
             stopBackgroundTimer();
@@ -512,7 +526,7 @@ async function handleTimerComplete() {
         // Show completion notification
         if (settings.enableNotifications) {
             if (timerState.currentSession === 'focus') {
-                showNotification('⚡ Focus Session Complete!', 'Great work! Time for a well-deserved break.');
+                showNotification('⚡ Focus Session Complete!', 'Great work! Click the extension to start your break when ready.');
             } else {
                 showNotification('⏰ Break Time Over!', 'Ready to focus again? Let\'s spark some productivity!');
             }
@@ -530,21 +544,19 @@ async function handleTimerComplete() {
             if (sessionCount % 4 === 0) {
                 nextSession = 'longBreak';
                 nextDuration = settings.longBreak;
-                debugLog('Switching to long break', 'info');
+                debugLog('Focus session complete - ready for long break', 'info');
             } else {
                 nextSession = 'shortBreak';
                 nextDuration = settings.shortBreak;
-                debugLog('Switching to short break', 'info');
+                debugLog('Focus session complete - ready for short break', 'info');
             }
             
-            // Open break content for focus session completion
-            if (nextSession === 'shortBreak' || nextSession === 'longBreak') {
-                await openBreakContentBackground(settings);
-            }
+            // Don't automatically open break content when focus session ends
+            // User needs to manually start the break session
         } else {
             nextSession = 'focus';
             nextDuration = settings.focusDuration;
-            debugLog('Switching to focus session', 'info');
+            debugLog('Break complete - ready for focus session', 'info');
         }
         
         // Update timer state for next session (but don't start automatically)

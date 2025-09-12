@@ -224,6 +224,11 @@ class SparkTimer {
             this.timeLeft = this.getCurrentSessionDuration() * 60;
             this.totalTime = this.timeLeft;
             this.debug(`Starting ${this.currentSession} session (${this.getCurrentSessionDuration()} minutes)`, 'info');
+            
+            // Open break content when starting a break session
+            if (this.currentSession === 'shortBreak' || this.currentSession === 'longBreak') {
+                this.openBreakContent();
+            }
         }
         
         this.isRunning = true;
@@ -322,19 +327,20 @@ class SparkTimer {
             if (this.sessionCount % 4 === 0) {
                 this.currentSession = 'longBreak';
                 this.timeLeft = this.settings.longBreak * 60;
-                this.debug('Switching to long break', 'info');
+                this.debug('Focus session complete - ready for long break', 'info');
             } else {
                 this.currentSession = 'shortBreak';
                 this.timeLeft = this.settings.shortBreak * 60;
-                this.debug('Switching to short break', 'info');
+                this.debug('Focus session complete - ready for short break', 'info');
             }
             
-            // Open break content
-            this.openBreakContent();
+            // Don't automatically open break content or start break timer
+            // User needs to manually start the break session
         } else {
+            // Break session completed
             this.currentSession = 'focus';
             this.timeLeft = this.settings.focusDuration * 60;
-            this.debug('Switching to focus session', 'info');
+            this.debug('Break complete - ready for focus session', 'info');
         }
 
         this.totalTime = this.timeLeft;
@@ -475,6 +481,7 @@ class SparkTimer {
     updateBreakPreview() {
         const preview = document.getElementById('breakPreview');
         const contentType = document.getElementById('breakContentType');
+        const previewHeader = document.getElementById('breakPreviewHeader');
         
         if (this.currentSession === 'focus' && !this.isRunning) {
             const enabledTypes = [];
@@ -486,6 +493,23 @@ class SparkTimer {
             if (enabledTypes.length > 0) {
                 const randomType = enabledTypes[Math.floor(Math.random() * enabledTypes.length)];
                 contentType.textContent = randomType;
+                previewHeader.textContent = 'Your next break will show:';
+                preview.style.display = 'block';
+            } else {
+                preview.style.display = 'none';
+            }
+        } else if ((this.currentSession === 'shortBreak' || this.currentSession === 'longBreak') && !this.isRunning) {
+            // Show that content will appear when break starts
+            const enabledTypes = [];
+            if (this.settings.enableFacts) enabledTypes.push('Interesting Fact');
+            if (this.settings.enableQuotes) enabledTypes.push('Inspirational Quote');
+            if (this.settings.enableWebsites) enabledTypes.push('Cool Website');
+            if (this.settings.enableNasa) enabledTypes.push('NASA Discovery');
+            
+            if (enabledTypes.length > 0) {
+                const randomType = enabledTypes[Math.floor(Math.random() * enabledTypes.length)];
+                contentType.textContent = randomType;
+                previewHeader.textContent = 'Start your break to see:';
                 preview.style.display = 'block';
             } else {
                 preview.style.display = 'none';
@@ -855,7 +879,7 @@ class SparkTimer {
             chrome.runtime.sendMessage({
                 action: 'showNotification',
                 title: '⚡ Focus Session Complete!',
-                message: 'Great work! Time for a well-deserved break.'
+                message: 'Great work! Click the extension to start your break when ready.'
             });
         } else {
             chrome.runtime.sendMessage({
