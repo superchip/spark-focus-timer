@@ -91,9 +91,30 @@ class SparkTimer {
         if (this.timeLeft > 0) {
             this.isRunning = true;
             this.startTimer();
+            
+            // Restart background timer for remaining time
+            chrome.runtime.sendMessage({
+                action: 'startBackgroundTimer',
+                duration: this.timeLeft / 60, // Convert seconds to minutes
+                sessionInfo: {
+                    type: this.currentSession,
+                    sessionCount: this.sessionCount
+                }
+            });
         } else {
-            // Timer finished while popup was closed
-            this.handleSessionComplete();
+            // Timer finished while popup was closed - check if background handled it
+            const result = await chrome.storage.local.get(['timerState']);
+            if (result.timerState && !result.timerState.isRunning) {
+                // Background script already handled completion
+                this.currentSession = result.timerState.currentSession;
+                this.sessionCount = result.timerState.sessionCount;
+                this.timeLeft = result.timerState.timeLeft;
+                this.totalTime = result.timerState.totalTime;
+                this.debug('Timer state restored from background completion', 'info');
+            } else {
+                // Handle completion now
+                this.handleSessionComplete();
+            }
         }
     }
 
@@ -112,6 +133,7 @@ class SparkTimer {
         document.getElementById('applySpeed').addEventListener('click', () => this.applySpeedMultiplier());
         document.getElementById('testNotification').addEventListener('click', () => this.testNotification());
         document.getElementById('testBreakContent').addEventListener('click', () => this.testBreakContent());
+        document.getElementById('testBackgroundTimer').addEventListener('click', () => this.testBackgroundTimer());
         document.getElementById('skipToEnd').addEventListener('click', () => this.skipToSessionEnd());
         document.getElementById('simulateFocus').addEventListener('click', () => this.simulateSession('focus', 10));
         document.getElementById('simulateBreak').addEventListener('click', () => this.simulateSession('shortBreak', 5));
@@ -208,6 +230,16 @@ class SparkTimer {
         this.startTimer();
         this.updateControls();
         this.saveTimerState();
+        
+        // Start background timer to ensure notifications work even when popup is closed
+        chrome.runtime.sendMessage({
+            action: 'startBackgroundTimer',
+            duration: this.timeLeft / 60, // Convert seconds to minutes
+            sessionInfo: {
+                type: this.currentSession,
+                sessionCount: this.sessionCount
+            }
+        });
     }
 
     pauseSession() {
@@ -217,6 +249,11 @@ class SparkTimer {
         this.updateControls();
         this.clearTimerState();
         this.debug('Timer paused', 'info');
+        
+        // Stop background timer when paused
+        chrome.runtime.sendMessage({
+            action: 'stopBackgroundTimer'
+        });
     }
 
     resetSession() {
@@ -237,6 +274,11 @@ class SparkTimer {
         this.updateControls();
         this.clearTimerState();
         this.debug(`Timer reset for ${this.currentSession} session`, 'info');
+        
+        // Stop background timer when reset
+        chrome.runtime.sendMessage({
+            action: 'stopBackgroundTimer'
+        });
     }
 
     startTimer() {
@@ -259,6 +301,11 @@ class SparkTimer {
         clearInterval(this.interval);
         
         this.debug(`${this.currentSession} session completed`, 'info');
+        
+        // Stop background timer since we're handling completion here
+        chrome.runtime.sendMessage({
+            action: 'stopBackgroundTimer'
+        });
         
         // Show notification
         if (this.settings.enableNotifications) {
@@ -685,6 +732,33 @@ class SparkTimer {
             command: 'testBreakContent',
             contentType: randomType
         });
+    }
+
+    testBackgroundTimer() {
+        this.debug('Testing background timer (10 seconds)', 'info');
+        
+        // Start a 10-second background timer for testing
+        chrome.runtime.sendMessage({
+            action: 'startBackgroundTimer',
+            duration: 10 / 60, // 10 seconds in minutes
+            sessionInfo: {
+                type: 'focus',
+                sessionCount: 1
+            }
+        });
+        
+        // Set up a mock timer state for testing
+        const testState = {
+            isRunning: true,
+            currentSession: 'focus',
+            sessionCount: 1,
+            timeLeft: 10,
+            totalTime: 10,
+            startTime: Date.now()
+        };
+        
+        chrome.storage.local.set({ timerState: testState });
+        this.debug('Background timer test started - close popup to test!', 'info');
     }
 
     skipToSessionEnd() {

@@ -50,6 +50,23 @@ chrome.runtime.onInstalled.addListener(() => {
             debugLog('Existing settings loaded', 'info');
         }
     });
+    
+    // Clear any existing alarms on install
+    chrome.alarms.clearAll();
+    debugLog('Cleared all existing alarms', 'info');
+});
+
+// Handle service worker startup
+chrome.runtime.onStartup.addListener(() => {
+    debugLog('Extension service worker started', 'info');
+    
+    // Check if there was a running timer that needs to be restored
+    checkTimerState();
+});
+
+// Keep service worker alive when needed
+chrome.runtime.onSuspend.addListener(() => {
+    debugLog('Service worker suspending', 'warn');
 });
 
 // Handle messages from popup
@@ -62,6 +79,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             break;
         case 'openBreakContent':
             openBreakContent(request.type, request.url);
+            break;
+        case 'startBackgroundTimer':
+            startBackgroundTimer(request.duration, request.sessionInfo);
+            break;
+        case 'stopBackgroundTimer':
+            stopBackgroundTimer();
             break;
         case 'debugLog':
             // Handle debug logs from popup
@@ -91,16 +114,79 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 });
 
+// Start background timer using alarms
+function startBackgroundTimer(durationMinutes, sessionInfo) {
+    debugLog(`Starting background timer for ${durationMinutes} minutes`, 'info');
+    
+    // Clear any existing alarms
+    chrome.alarms.clear('sparkTimer');
+    chrome.alarms.clear('sparkTimerCheck');
+    chrome.alarms.clear('sparkKeepAlive');
+    
+    // Create main alarm for timer completion
+    chrome.alarms.create('sparkTimer', {
+        delayInMinutes: durationMinutes
+    });
+    
+    // Create backup check alarm (1 minute after main alarm)
+    chrome.alarms.create('sparkTimerCheck', {
+        delayInMinutes: durationMinutes + 1
+    });
+    
+    // Create keep-alive alarms to prevent service worker from sleeping
+    // Chrome can put service workers to sleep after 30 seconds of inactivity
+    const keepAliveInterval = Math.min(durationMinutes / 4, 5); // Every 1/4 of duration or 5 minutes, whichever is smaller
+    
+    if (keepAliveInterval > 0.5) { // Only if session is longer than 30 seconds
+        chrome.alarms.create('sparkKeepAlive', {
+            delayInMinutes: keepAliveInterval,
+            periodInMinutes: keepAliveInterval
+        });
+    }
+    
+    debugLog(`Background timer set: main=${durationMinutes}min, check=${durationMinutes + 1}min, keepAlive=${keepAliveInterval}min`, 'info');
+}
+
+// Stop background timer
+function stopBackgroundTimer() {
+    debugLog('Stopping background timer', 'info');
+    chrome.alarms.clear('sparkTimer');
+    chrome.alarms.clear('sparkTimerCheck');
+    chrome.alarms.clear('sparkKeepAlive');
+}
+
 // Show notification
 function showNotification(title, message) {
     debugLog(`Showing notification: ${title}`, 'info');
-    chrome.notifications.create({
-        type: 'basic',
-        iconUrl: 'icons/icon48.png',
-        title: title,
-        message: message,
-        priority: 2
-    });
+    
+    // Try to create notification with error handling
+    try {
+        chrome.notifications.create({
+            type: 'basic',
+            iconUrl: 'icons/icon48.png',
+            title: title,
+            message: message,
+            priority: 2,
+            requireInteraction: true // Keep notification visible until user interacts
+        }, (notificationId) => {
+            if (chrome.runtime.lastError) {
+                debugLog(`Notification error: ${chrome.runtime.lastError.message}`, 'error');
+                
+                // Fallback: try simpler notification
+                chrome.notifications.create({
+                    type: 'basic',
+                    iconUrl: 'icons/icon48.png',
+                    title: title,
+                    message: message
+                });
+            } else {
+                debugLog(`Notification created successfully: ${notificationId}`, 'info');
+            }
+        });
+    } catch (error) {
+        debugLog(`Notification creation failed: ${error.message}`, 'error');
+        console.error('Notification error:', error);
+    }
 }
 
 // Handle break content opening
@@ -333,12 +419,251 @@ function createContentPage(title, content, emoji, isHtml = false) {
 }
 
 // Handle alarms (for notifications when popup is closed)
-chrome.alarms.onAlarm.addListener((alarm) => {
+chrome.alarms.onAlarm.addListener(async (alarm) => {
     debugLog(`Alarm triggered: ${alarm.name}`, 'info');
+    
+    // Ensure service worker stays active during alarm handling
+    keepServiceWorkerAlive();
+    
     if (alarm.name === 'sparkTimer') {
-        showNotification('⚡ Spark Timer', 'Check your timer!');
+        await handleTimerComplete();
+    } else if (alarm.name === 'sparkTimerCheck') {
+        // Fallback alarm to check timer state
+        debugLog('Fallback timer check triggered', 'info');
+        await checkTimerState();
+    } else if (alarm.name === 'sparkKeepAlive') {
+        // Keep-alive alarm to prevent service worker from sleeping
+        debugLog('Keep-alive alarm triggered', 'info');
+        await checkTimerState();
     }
 });
+
+// Keep service worker alive and check timer state
+async function checkTimerState() {
+    try {
+        const result = await chrome.storage.local.get(['timerState']);
+        
+        if (result.timerState && result.timerState.isRunning) {
+            const now = Date.now();
+            const elapsed = Math.floor((now - result.timerState.startTime) / 1000);
+            const timeLeft = result.timerState.timeLeft - elapsed;
+            
+            if (timeLeft <= 0) {
+                // Timer should have completed
+                debugLog('Timer found to be completed during check', 'info');
+                await handleTimerComplete();
+            } else {
+                debugLog(`Timer still running: ${Math.floor(timeLeft / 60)}:${(timeLeft % 60).toString().padStart(2, '0')} remaining`, 'info');
+                
+                // Set up next keep-alive if needed
+                const nextCheckMinutes = Math.min(Math.ceil(timeLeft / 60), 5); // Check every 5 minutes max
+                chrome.alarms.create('sparkKeepAlive', {
+                    delayInMinutes: nextCheckMinutes
+                });
+            }
+        }
+    } catch (error) {
+        debugLog(`Error checking timer state: ${error.message}`, 'error');
+    }
+}
+
+// Keep service worker alive during critical operations
+function keepServiceWorkerAlive() {
+    // This function helps ensure the service worker doesn't sleep during alarm handling
+    const wakeLock = setInterval(() => {
+        // Small storage operation to keep worker active
+        chrome.storage.local.get('keepAlive');
+    }, 1000);
+    
+    // Clear after 30 seconds
+    setTimeout(() => {
+        clearInterval(wakeLock);
+    }, 30000);
+}
+
+// Handle timer completion in background
+async function handleTimerComplete() {
+    debugLog('Timer completed in background', 'info');
+    
+    try {
+        // Get current timer state and settings
+        const result = await chrome.storage.local.get(['timerState']);
+        const settingsResult = await chrome.storage.sync.get(['settings']);
+        
+        if (!result.timerState || !result.timerState.isRunning) {
+            debugLog('No active timer found', 'warn');
+            return;
+        }
+        
+        const timerState = result.timerState;
+        const settings = settingsResult.settings || {
+            focusDuration: 25,
+            shortBreak: 5,
+            longBreak: 30,
+            enableNotifications: true,
+            enableFacts: true,
+            enableQuotes: true,
+            enableWebsites: true,
+            enableNasa: true
+        };
+        
+        debugLog(`Completing ${timerState.currentSession} session`, 'info');
+        
+        // Show completion notification
+        if (settings.enableNotifications) {
+            if (timerState.currentSession === 'focus') {
+                showNotification('⚡ Focus Session Complete!', 'Great work! Time for a well-deserved break.');
+            } else {
+                showNotification('⏰ Break Time Over!', 'Ready to focus again? Let\'s spark some productivity!');
+            }
+        }
+        
+        // Update stats
+        await updateBackgroundStats(timerState, settings);
+        
+        // Determine next session
+        let nextSession, nextDuration, sessionCount = timerState.sessionCount;
+        
+        if (timerState.currentSession === 'focus') {
+            sessionCount++;
+            
+            if (sessionCount % 4 === 0) {
+                nextSession = 'longBreak';
+                nextDuration = settings.longBreak;
+                debugLog('Switching to long break', 'info');
+            } else {
+                nextSession = 'shortBreak';
+                nextDuration = settings.shortBreak;
+                debugLog('Switching to short break', 'info');
+            }
+            
+            // Open break content for focus session completion
+            if (nextSession === 'shortBreak' || nextSession === 'longBreak') {
+                await openBreakContentBackground(settings);
+            }
+        } else {
+            nextSession = 'focus';
+            nextDuration = settings.focusDuration;
+            debugLog('Switching to focus session', 'info');
+        }
+        
+        // Update timer state for next session (but don't start automatically)
+        const newTimerState = {
+            isRunning: false,
+            currentSession: nextSession,
+            sessionCount: sessionCount,
+            timeLeft: nextDuration * 60,
+            totalTime: nextDuration * 60,
+            startTime: null
+        };
+        
+        await chrome.storage.local.set({ timerState: newTimerState });
+        debugLog(`Timer state updated for next ${nextSession} session`, 'info');
+        
+        // Clear any existing alarms
+        chrome.alarms.clear('sparkTimer');
+        
+    } catch (error) {
+        debugLog(`Error handling timer completion: ${error.message}`, 'error');
+        console.error('Error handling timer completion:', error);
+    }
+}
+
+// Update stats in background
+async function updateBackgroundStats(timerState, settings) {
+    const today = new Date().toDateString();
+    const result = await chrome.storage.local.get(['stats']);
+    
+    let stats = {
+        date: today,
+        completedSessions: 0,
+        totalFocusTime: 0,
+        currentStreak: 0,
+        lastSessionDate: null
+    };
+
+    if (result.stats && result.stats.date === today) {
+        stats = result.stats;
+    }
+
+    if (timerState.currentSession === 'focus') {
+        stats.completedSessions++;
+        stats.totalFocusTime += settings.focusDuration;
+        
+        // Update streak
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        
+        if (stats.lastSessionDate === yesterday.toDateString() || stats.completedSessions === 1) {
+            stats.currentStreak = stats.completedSessions;
+        }
+        
+        stats.lastSessionDate = today;
+        
+        debugLog(`Stats updated: ${stats.completedSessions} sessions, ${stats.totalFocusTime} minutes`, 'info');
+    }
+
+    await chrome.storage.local.set({ stats });
+}
+
+// Open break content in background
+async function openBreakContentBackground(settings) {
+    const enabledTypes = [];
+    if (settings.enableFacts) enabledTypes.push('fact');
+    if (settings.enableQuotes) enabledTypes.push('quote');
+    if (settings.enableWebsites) enabledTypes.push('website');
+    if (settings.enableNasa) enabledTypes.push('nasa');
+
+    if (enabledTypes.length === 0) {
+        debugLog('No break content types enabled', 'warn');
+        return;
+    }
+
+    const randomType = enabledTypes[Math.floor(Math.random() * enabledTypes.length)];
+    debugLog(`Opening break content: ${randomType}`, 'info');
+    
+    try {
+        let url;
+        switch (randomType) {
+            case 'fact':
+                url = 'https://uselessfacts.jsph.pl/random.json?language=en';
+                break;
+            case 'quote':
+                url = 'https://api.quotegarden.io/api/v3/quotes/random';
+                break;
+            case 'website':
+                await openRandomWebsiteBackground();
+                return;
+            case 'nasa':
+                url = 'https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY';
+                break;
+        }
+
+        await openBreakContent(randomType, url);
+    } catch (error) {
+        debugLog(`Failed to open break content: ${error.message}`, 'error');
+    }
+}
+
+// Open random website in background
+async function openRandomWebsiteBackground() {
+    const websites = [
+        'https://theuselessweb.com/',
+        'https://www.boredpanda.com/',
+        'https://www.mentalfloss.com/',
+        'https://www.atlasobscura.com/',
+        'https://99percentinvisible.org/',
+        'https://www.reddit.com/r/todayilearned/',
+        'https://www.reddit.com/r/interestingasfuck/',
+        'https://www.ted.com/talks',
+        'https://www.nationalgeographic.com/photography/',
+        'https://pudding.cool/'
+    ];
+    
+    const randomSite = websites[Math.floor(Math.random() * websites.length)];
+    chrome.tabs.create({ url: randomSite });
+    debugLog(`Opened random website: ${randomSite}`, 'info');
+}
 
 // Cleanup object URLs periodically to prevent memory leaks
 setInterval(() => {
@@ -352,6 +677,25 @@ chrome.storage.local.get(['backgroundDebugLogs'], (result) => {
         debugLogs = result.backgroundDebugLogs;
         debugLog('Loaded existing debug logs from storage', 'info');
     }
+});
+
+// Handle notification clicks
+chrome.notifications.onClicked.addListener((notificationId) => {
+    debugLog(`Notification clicked: ${notificationId}`, 'info');
+    
+    // Clear the notification
+    chrome.notifications.clear(notificationId);
+    
+    // Focus on the extension or open popup
+    chrome.action.openPopup().catch(() => {
+        // If popup can't be opened, at least clear the notification
+        debugLog('Could not open popup from notification click', 'warn');
+    });
+});
+
+// Handle notification close
+chrome.notifications.onClosed.addListener((notificationId, byUser) => {
+    debugLog(`Notification closed: ${notificationId}, by user: ${byUser}`, 'info');
 });
 
 // Handle debug commands
