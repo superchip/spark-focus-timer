@@ -18,7 +18,8 @@ class SparkTimer {
             enableFacts: true,
             enableQuotes: true,
             enableWebsites: true,
-            enableDebugMode: false
+            enableDebugMode: false,
+            enableWidget: true
         };
 
         // Debug system
@@ -250,7 +251,8 @@ class SparkTimer {
             enableFacts: document.getElementById('enableFacts'),
             enableQuotes: document.getElementById('enableQuotes'),
             enableWebsites: document.getElementById('enableWebsites'),
-            enableDebugMode: document.getElementById('enableDebugMode')
+            enableDebugMode: document.getElementById('enableDebugMode'),
+            enableWidget: document.getElementById('enableWidget')
         };
 
         // Set initial values
@@ -262,6 +264,7 @@ class SparkTimer {
         elements.enableQuotes.checked = this.settings.enableQuotes;
         elements.enableWebsites.checked = this.settings.enableWebsites;
         elements.enableDebugMode.checked = this.settings.enableDebugMode;
+    if (elements.enableWidget) elements.enableWidget.checked = this.settings.enableWidget !== false;
 
         // Update display values
         document.getElementById('focusValue').textContent = this.settings.focusDuration;
@@ -298,6 +301,30 @@ class SparkTimer {
                     // Handle debug mode toggle
                     if (key === 'enableDebugMode') {
                         this.updateDebugVisibility();
+                    }
+                    if (key === 'enableWidget') {
+                        // Force reload of content scripts on active tabs when enabling
+                        if (this.settings.enableWidget) {
+                            chrome.tabs.query({active:true, currentWindow:true}, (tabs)=>{
+                                if (!tabs || !tabs[0]) return;
+                                try { 
+                                    if (chrome.scripting && chrome.scripting.executeScript) {
+                                        console.log('[SparkPopup] Injecting widget.js into active tab');
+                                        chrome.scripting.executeScript({ target:{tabId:tabs[0].id}, files:['widget.js'] }, ()=>{
+                                            if (chrome.runtime.lastError) {
+                                                console.warn('[SparkPopup] Widget inject error:', chrome.runtime.lastError.message);
+                                            } else {
+                                                console.log('[SparkPopup] Widget inject completed');
+                                                // Broadcast request to inject into all other tabs
+                                                chrome.runtime.sendMessage({ action: 'injectWidgetAll' });
+                                            }
+                                        });
+                                    } else {
+                                        console.log('[SparkPopup] scripting API unavailable in this context');
+                                    }
+                                } catch(e) { console.warn('[SparkPopup] scripting.executeScript threw', e); }
+                            });
+                        }
                     }
                 });
             }

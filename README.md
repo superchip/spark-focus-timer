@@ -15,6 +15,15 @@ Minimal focus & break (Pomodoro-style) timer that turns breaks into uplifting mi
 | Privacy | Zero analytics, zero external tracking, local + sync storage only |
 | Debug (Opt‑in) | Hidden console for QA: simulate sessions, inspect storage, export logs |
 
+### Floating Mini Widget (New)
+Optional draggable mini timer injected on every page (can be disabled). Shows:
+- Current session & next session hint
+- Animated progress bar & percent
+- Start / Pause toggle and Reset
+- Collapse / expand + quick hide (×)
+
+Enable / disable via popup Settings → "Floating Widget". Respects your configured durations and stays in sync with notifications & background alarms.
+
 ## 🆕 v1.0.1
 
 - Added `options.html` (Chrome Web Store friendly settings page)
