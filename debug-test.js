@@ -45,7 +45,7 @@ function testAcceleratedTimer() {
 function testBreakContentSystem() {
     console.log('Testing break content system...');
     
-    const contentTypes = ['fact', 'quote', 'website', 'nasa'];
+    const contentTypes = ['fact', 'quote', 'website'];
     contentTypes.forEach((type, index) => {
         setTimeout(() => {
             chrome.runtime.sendMessage({

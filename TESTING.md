@@ -87,7 +87,7 @@ chrome.runtime.sendMessage({
 #### Break Content
 - [x] Random facts load
 - [x] Inspirational quotes display
-- [x] NASA images show
+ 
 - [x] Random websites open
 - [x] Content settings work
 

@@ -27,7 +27,7 @@
     <h2>What We Store</h2>
     <ul>
       <li><strong>Timer state & statistics</strong> (focus sessions completed, total focus minutes, streak). Stored locally via <code>chrome.storage.local</code>. Resettable by you.</li>
-      <li><strong>Preferences</strong> (durations, content type toggles, notification preference, optional NASA API key). Stored via <code>chrome.storage.sync</code> so they can roam across Chrome profiles signed in with sync enabled.</li>
+  <li><strong>Preferences</strong> (durations, content type toggles, notification preference). Stored via <code>chrome.storage.sync</code> so they can roam across Chrome profiles signed in with sync enabled.</li>
       <li><strong>Optional debug logs</strong> are only kept if you enable Debug Mode. These never leave your machine and can be cleared.</li>
     </ul>
 
@@ -44,12 +44,9 @@
     <ul>
       <li>Facts: <code>https://uselessfacts.jsph.pl/</code></li>
       <li>Quotes: <code>https://api.quotegarden.io/</code></li>
-      <li>NASA APOD: <code>https://api.nasa.gov/</code> (using your key if provided; otherwise a limited demo key)</li>
     </ul>
     <p>Responses are rendered directly in a local tab; nothing is forwarded elsewhere.</p>
 
-    <h2>NASA API Key (Optional)</h2>
-    <p>If you supply a NASA API key it is stored in sync storage only and is transmitted solely to the NASA endpoint you enabled (APOD). Remove or clear the field anytime to revert to the public demo key.</p>
 
     <h2>Permissions Justification</h2>
     <ul>

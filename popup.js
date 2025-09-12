@@ -18,9 +18,7 @@ class SparkTimer {
             enableFacts: true,
             enableQuotes: true,
             enableWebsites: true,
-            enableNasa: true,
-            enableDebugMode: false,
-            nasaApiKey: ''
+            enableDebugMode: false
         };
 
         // Debug system
@@ -33,7 +31,7 @@ class SparkTimer {
             'Interesting Fact',
             'Inspirational Quote',
             'Cool Website',
-            'NASA Image of the Day',
+            
             'Life Advice',
             'Random Discovery'
         ];
@@ -252,7 +250,6 @@ class SparkTimer {
             enableFacts: document.getElementById('enableFacts'),
             enableQuotes: document.getElementById('enableQuotes'),
             enableWebsites: document.getElementById('enableWebsites'),
-            enableNasa: document.getElementById('enableNasa'),
             enableDebugMode: document.getElementById('enableDebugMode')
         };
 
@@ -264,7 +261,6 @@ class SparkTimer {
         elements.enableFacts.checked = this.settings.enableFacts;
         elements.enableQuotes.checked = this.settings.enableQuotes;
         elements.enableWebsites.checked = this.settings.enableWebsites;
-        elements.enableNasa.checked = this.settings.enableNasa;
         elements.enableDebugMode.checked = this.settings.enableDebugMode;
 
         // Update display values
@@ -483,7 +479,7 @@ class SparkTimer {
         if (this.settings.enableFacts) enabledTypes.push('fact');
         if (this.settings.enableQuotes) enabledTypes.push('quote');
         if (this.settings.enableWebsites) enabledTypes.push('website');
-        if (this.settings.enableNasa) enabledTypes.push('nasa');
+        
 
         if (enabledTypes.length === 0) {
             this.debug('No break content types enabled', 'warn');
@@ -505,13 +501,7 @@ class SparkTimer {
                 case 'website':
                     this.openRandomWebsite();
                     return;
-                case 'nasa':
-                    if (this.settings.nasaApiKey && /^[A-Za-z0-9]{8,}$/.test(this.settings.nasaApiKey)) {
-                        url = `https://api.nasa.gov/planetary/apod?api_key=${this.settings.nasaApiKey}`;
-                    } else {
-                        url = 'https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY';
-                    }
-                    break;
+                
             }
 
             // Send message to background script to open content
@@ -661,7 +651,7 @@ class SparkTimer {
             if (this.settings.enableFacts) enabledTypes.push('Interesting Fact');
             if (this.settings.enableQuotes) enabledTypes.push('Inspirational Quote');
             if (this.settings.enableWebsites) enabledTypes.push('Cool Website');
-            if (this.settings.enableNasa) enabledTypes.push('NASA Discovery');
+            
             
             if (enabledTypes.length > 0) {
                 const randomType = enabledTypes[Math.floor(Math.random() * enabledTypes.length)];
@@ -677,7 +667,7 @@ class SparkTimer {
             if (this.settings.enableFacts) enabledTypes.push('Interesting Fact');
             if (this.settings.enableQuotes) enabledTypes.push('Inspirational Quote');
             if (this.settings.enableWebsites) enabledTypes.push('Cool Website');
-            if (this.settings.enableNasa) enabledTypes.push('NASA Discovery');
+            
             
             if (enabledTypes.length > 0) {
                 const randomType = enabledTypes[Math.floor(Math.random() * enabledTypes.length)];
@@ -952,7 +942,7 @@ class SparkTimer {
 
     testBreakContent() {
         this.debug('Testing break content system', 'info');
-        const contentTypes = ['fact', 'quote', 'website', 'nasa'];
+    const contentTypes = ['fact', 'quote', 'website'];
         const randomType = contentTypes[Math.floor(Math.random() * contentTypes.length)];
         
         chrome.runtime.sendMessage({

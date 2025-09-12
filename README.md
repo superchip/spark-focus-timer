@@ -1,6 +1,6 @@
 # ⚡ Spark Focus Timer (Chrome / Chromium Extension)
 
-Minimal focus & break (Pomodoro-style) timer that turns breaks into uplifting micro‑discoveries: random facts, inspirational quotes, curated sites, and optional NASA imagery. No tracking, no accounts, just flow.
+Minimal focus & break (Pomodoro-style) timer that turns breaks into uplifting micro‑discoveries: random facts, inspirational quotes, and curated sites. No tracking, no accounts, just flow.
 
 ## ✨ Core Features
 
@@ -9,9 +9,9 @@ Minimal focus & break (Pomodoro-style) timer that turns breaks into uplifting mi
 | Sessions | Focus / Short Break / Long Break cycle, manual start of breaks (no surprise tab spam) |
 | Persistence | Runs via background alarms even if popup closed |
 | Notifications | Desktop completion notifications with quick Start Break / Start Focus buttons |
-| Break Content | Facts, Quotes, Curated Sites, NASA APOD (random enabled type each break) |
+| Break Content | Facts, Quotes, Curated Sites (random enabled type each break) |
 | Stats | Daily completed sessions, total focus minutes, streak indicator |
-| Options Page | Adjust durations, toggle content, optional NASA key, one-click reset |
+| Options Page | Adjust durations, toggle content, one-click reset |
 | Privacy | Zero analytics, zero external tracking, local + sync storage only |
 | Debug (Opt‑in) | Hidden console for QA: simulate sessions, inspect storage, export logs |
 
@@ -20,12 +20,12 @@ Minimal focus & break (Pomodoro-style) timer that turns breaks into uplifting mi
 - Added `options.html` (Chrome Web Store friendly settings page)
 - Added `privacy.html` (transparent data & permission disclosure)
 - Manifest polish: `short_name`, `homepage_url`, `author`, removed unused `activeTab` permission
-- Optional NASA API key storage (improves APOD quota) – totally optional
+ 
 
 ## 🔐 Privacy Snapshot
 
 No telemetry. No third‑party analytics. Only outgoing requests are to the enabled content APIs:
-`uselessfacts.jsph.pl`, `api.quotegarden.io`, `api.nasa.gov` (APOD), plus any curated site you open intentionally.
+`uselessfacts.jsph.pl`, `api.quotegarden.io`, plus any curated site you open intentionally.
 
 Full statement: `privacy.html`.
 
@@ -49,7 +49,7 @@ Still recommended before publishing:
 	1. Focus timer running
 	2. Break session ready screen
 	3. Options page (durations + toggles)
-	4. Break content tab (NASA image / fact page)
+	4. Break content tab (fact or quote page)
 - (Optional) Create a promo tile / cover image (branding consistency)
 
 Packaging (exclude dev docs if desired):
@@ -64,8 +64,7 @@ Enable via popup Settings → Debug Mode. Gives access to a debug console: simul
 ## 🔄 Session Logic
 After each Focus session: user manually starts the break (prevents surprise new tabs). After a Short Break or Long Break: user starts the next Focus session. Every 4th focus yields a long break.
 
-## 🔌 Optional NASA Key
-Enter on Options page to lift public demo key limits. Leave blank to use `DEMO_KEY`.
+ 
 
 ## 🧩 Customization Pointers
 - Add new break API types in `background.js` / `popup.js`

@@ -41,9 +41,7 @@ chrome.runtime.onInstalled.addListener(() => {
                 enableFacts: true,
                 enableQuotes: true,
                 enableWebsites: true,
-                enableNasa: true,
-                enableDebugMode: false,
-                nasaApiKey: ''
+                enableDebugMode: false
             };
             chrome.storage.sync.set({ settings: defaultSettings });
             debugLog('Default settings initialized', 'info');
@@ -95,7 +93,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                                 enableFacts: true,
                                 enableQuotes: true,
                                 enableWebsites: true,
-                                enableNasa: true
+                                
                             };
                             openBreakContentBackground(settings);
                             
@@ -307,23 +305,7 @@ async function openBreakContent(type, url) {
                 }
                 break;
 
-            case 'nasa':
-                debugLog('Fetching NASA image of the day', 'info');
-                const nasaData = await fetchJsonData(url);
-                if (nasaData && nasaData.url) {
-                    content = `
-                        <div style="text-align: center;">
-                            <h2>${nasaData.title || 'NASA Image of the Day'}</h2>
-                            <img src="${nasaData.url}" style="max-width: 100%; height: auto; border-radius: 12px; margin: 20px 0;">
-                            <p style="font-style: italic; color: #666;">${nasaData.explanation || 'Explore the cosmos with NASA!'}</p>
-                        </div>
-                    `;
-                    finalUrl = createContentPage('NASA Discovery', content, '🚀', true);
-                    debugLog('Successfully created NASA content page', 'info');
-                } else {
-                    debugLog('Failed to fetch NASA data', 'warn');
-                }
-                break;
+            
 
             default:
                 // For websites, just open the URL directly
@@ -574,7 +556,7 @@ async function handleTimerComplete() {
             enableFacts: true,
             enableQuotes: true,
             enableWebsites: true,
-            enableNasa: true
+            
         };
         
         debugLog(`Completing ${timerState.currentSession} session`, 'info');
@@ -681,7 +663,7 @@ async function openBreakContentBackground(settings) {
     if (settings.enableFacts) enabledTypes.push('fact');
     if (settings.enableQuotes) enabledTypes.push('quote');
     if (settings.enableWebsites) enabledTypes.push('website');
-    if (settings.enableNasa) enabledTypes.push('nasa');
+    
 
     if (enabledTypes.length === 0) {
         debugLog('No break content types enabled', 'warn');
@@ -703,14 +685,7 @@ async function openBreakContentBackground(settings) {
             case 'website':
                 await openRandomWebsiteBackground();
                 return;
-            case 'nasa':
-                // Use stored NASA key if provided in settings (fallback to demo key)
-                if (settings.nasaApiKey && /^[A-Za-z0-9]{8,}$/.test(settings.nasaApiKey)) {
-                    url = `https://api.nasa.gov/planetary/apod?api_key=${settings.nasaApiKey}`;
-                } else {
-                    url = 'https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY';
-                }
-                break;
+            
         }
 
         await openBreakContent(randomType, url);
@@ -1003,7 +978,7 @@ function handleDebugCommand(command, request) {
 
 // Test break content functionality
 function testBreakContent(contentType = null) {
-    const types = ['fact', 'quote', 'website', 'nasa'];
+    const types = ['fact', 'quote', 'website'];
     const testType = contentType || types[Math.floor(Math.random() * types.length)];
     
     debugLog(`Testing break content type: ${testType}`, 'info');
@@ -1011,8 +986,7 @@ function testBreakContent(contentType = null) {
     const testUrls = {
         fact: 'https://uselessfacts.jsph.pl/random.json?language=en',
         quote: 'https://api.quotegarden.io/api/v3/quotes/random',
-        website: 'https://theuselessweb.com/',
-        nasa: 'https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY'
+        website: 'https://theuselessweb.com/'
     };
     
     openBreakContent(testType, testUrls[testType]);

@@ -57,8 +57,7 @@
       <div class="row"><input id="enableFacts" type="checkbox" /> <label for="enableFacts">Interesting Facts</label></div>
       <div class="row"><input id="enableQuotes" type="checkbox" /> <label for="enableQuotes">Inspirational Quotes</label></div>
       <div class="row"><input id="enableWebsites" type="checkbox" /> <label for="enableWebsites">Curated Websites</label></div>
-      <div class="row"><input id="enableNasa" type="checkbox" /> <label for="enableNasa">NASA Image / APOD</label></div>
-      <p class="section-note">At break start a random enabled type will open in a new tab. We only request public, free APIs. NASA content optionally supports a personal API key for higher quota.</p>
+  <p class="section-note">At break start a random enabled type will open in a new tab.</p>
     </fieldset>
 
     <h2>Notifications</h2>
@@ -66,13 +65,6 @@
       <div class="row"><input id="enableNotifications" type="checkbox" /> <label for="enableNotifications">Enable desktop notifications for session completion</label></div>
     </fieldset>
 
-    <h2>Optional API Keys</h2>
-    <p class="section-note">Provide a NASA API key (optional). If empty we fall back to the public demo key with limited quota.</p>
-    <div class="api-key">
-      <input id="nasaApiKey" type="text" placeholder="NASA API Key (optional)" />
-      <span class="badge">Optional</span>
-    </div>
-    <p class="section-note">Keys are stored locally (sync storage) only and never sent anywhere except directly to NASA's official API.</p>
 
     <h2>Maintenance</h2>
     <button class="reset" id="resetDefaults">Reset to Recommended Defaults</button>

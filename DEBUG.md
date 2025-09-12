@@ -75,7 +75,7 @@ This extension now includes comprehensive debug functionality to help with testi
 #### API Testing
 1. Enable debug mode
 2. Monitor console for API call logs
-3. Test break content (facts, quotes, NASA images)
+3. Test break content (facts, quotes, websites)
 4. Check network requests and responses
 
 #### Storage Testing

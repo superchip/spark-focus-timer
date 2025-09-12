@@ -7,9 +7,7 @@
     enableFacts: document.getElementById('enableFacts'),
     enableQuotes: document.getElementById('enableQuotes'),
     enableWebsites: document.getElementById('enableWebsites'),
-    enableNasa: document.getElementById('enableNasa'),
-    enableNotifications: document.getElementById('enableNotifications'),
-    nasaApiKey: document.getElementById('nasaApiKey'),
+  enableNotifications: document.getElementById('enableNotifications'),
     resetDefaults: document.getElementById('resetDefaults'),
     saveIndicator: document.getElementById('saveIndicator')
   };
@@ -22,9 +20,7 @@
     enableFacts: true,
     enableQuotes: true,
     enableWebsites: true,
-    enableNasa: true,
-    enableDebugMode: false,
-    nasaApiKey: ''
+  enableDebugMode: false
   };
 
   function showSaved() {

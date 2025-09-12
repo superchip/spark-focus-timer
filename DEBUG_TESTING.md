@@ -66,7 +66,7 @@ The Spark extension now includes comprehensive debugging and testing functionali
 
 ### Scenario 3: Break Content Validation
 1. Click "Test Break Content" multiple times
-2. Verify different content types open (facts, quotes, NASA images, websites)
+2. Verify different content types open (facts, quotes, websites)
 3. Check that content displays properly
 
 ### Scenario 4: Data Persistence Testing
@@ -149,7 +149,7 @@ Test break content APIs individually:
 chrome.runtime.sendMessage({
     action: 'debugCommand',
     command: 'testBreakContent',
-    contentType: 'nasa'  // or 'fact', 'quote', 'website'
+    contentType: 'fact'  // or 'quote', 'website'
 });
 ```
 
