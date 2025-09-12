@@ -7,6 +7,7 @@ class SparkTimer {
         this.timeLeft = 0;
         this.totalTime = 0;
         this.interval = null;
+        this.breakContentOpened = false; // Track if break content has been opened for current session
         
         // Settings
         this.settings = {
@@ -87,6 +88,7 @@ class SparkTimer {
         this.sessionCount = state.sessionCount;
         this.timeLeft = Math.max(0, state.timeLeft - elapsed);
         this.totalTime = state.totalTime;
+        this.breakContentOpened = state.breakContentOpened || false;
         
         if (this.timeLeft > 0) {
             this.isRunning = true;
@@ -110,6 +112,7 @@ class SparkTimer {
                 this.sessionCount = result.timerState.sessionCount;
                 this.timeLeft = result.timerState.timeLeft;
                 this.totalTime = result.timerState.totalTime;
+                this.breakContentOpened = false; // Reset for new session
                 this.debug('Timer state restored from background completion', 'info');
             } else {
                 // Handle completion now
@@ -225,9 +228,10 @@ class SparkTimer {
             this.totalTime = this.timeLeft;
             this.debug(`Starting ${this.currentSession} session (${this.getCurrentSessionDuration()} minutes)`, 'info');
             
-            // Open break content when starting a break session
-            if (this.currentSession === 'shortBreak' || this.currentSession === 'longBreak') {
+            // Open break content when starting a break session (only once per session)
+            if ((this.currentSession === 'shortBreak' || this.currentSession === 'longBreak') && !this.breakContentOpened) {
                 this.openBreakContent();
+                this.breakContentOpened = true;
             }
         }
         
@@ -275,6 +279,7 @@ class SparkTimer {
         }
         
         this.totalTime = this.timeLeft;
+        this.breakContentOpened = false; // Reset break content flag on reset
         this.updateDisplay();
         this.updateControls();
         this.clearTimerState();
@@ -334,6 +339,9 @@ class SparkTimer {
                 this.debug('Focus session complete - ready for short break', 'info');
             }
             
+            // Reset break content flag for new break session
+            this.breakContentOpened = false;
+            
             // Don't automatically open break content or start break timer
             // User needs to manually start the break session
         } else {
@@ -341,6 +349,9 @@ class SparkTimer {
             this.currentSession = 'focus';
             this.timeLeft = this.settings.focusDuration * 60;
             this.debug('Break complete - ready for focus session', 'info');
+            
+            // Reset break content flag when switching to focus
+            this.breakContentOpened = false;
         }
 
         this.totalTime = this.timeLeft;
@@ -579,7 +590,8 @@ class SparkTimer {
                 sessionCount: this.sessionCount,
                 timeLeft: this.timeLeft,
                 totalTime: this.totalTime,
-                startTime: Date.now() - (this.totalTime - this.timeLeft) * 1000
+                startTime: Date.now() - (this.totalTime - this.timeLeft) * 1000,
+                breakContentOpened: this.breakContentOpened
             };
             await chrome.storage.local.set({ timerState: state });
         }
@@ -807,6 +819,7 @@ class SparkTimer {
         this.currentSession = sessionType;
         this.timeLeft = durationSeconds;
         this.totalTime = durationSeconds;
+        this.breakContentOpened = false; // Reset for simulation
         this.updateDisplay();
         
         // Start the simulated session

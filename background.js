@@ -83,17 +83,31 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         case 'startBackgroundTimer':
             startBackgroundTimer(request.duration, request.sessionInfo);
             
-            // Open break content if this is a break session starting
+            // Open break content if this is a break session starting and content hasn't been opened yet
             if (request.sessionInfo && 
                 (request.sessionInfo.type === 'shortBreak' || request.sessionInfo.type === 'longBreak')) {
-                chrome.storage.sync.get(['settings']).then(settingsResult => {
-                    const settings = settingsResult.settings || {
-                        enableFacts: true,
-                        enableQuotes: true,
-                        enableWebsites: true,
-                        enableNasa: true
-                    };
-                    openBreakContentBackground(settings);
+                chrome.storage.local.get(['timerState']).then(result => {
+                    // Only open break content if it hasn't been opened for this session
+                    if (!result.timerState || !result.timerState.breakContentOpened) {
+                        chrome.storage.sync.get(['settings']).then(settingsResult => {
+                            const settings = settingsResult.settings || {
+                                enableFacts: true,
+                                enableQuotes: true,
+                                enableWebsites: true,
+                                enableNasa: true
+                            };
+                            openBreakContentBackground(settings);
+                            
+                            // Update timer state to mark break content as opened
+                            if (result.timerState) {
+                                const updatedState = {
+                                    ...result.timerState,
+                                    breakContentOpened: true
+                                };
+                                chrome.storage.local.set({ timerState: updatedState });
+                            }
+                        });
+                    }
                 });
             }
             break;
@@ -566,7 +580,8 @@ async function handleTimerComplete() {
             sessionCount: sessionCount,
             timeLeft: nextDuration * 60,
             totalTime: nextDuration * 60,
-            startTime: null
+            startTime: null,
+            breakContentOpened: false
         };
         
         await chrome.storage.local.set({ timerState: newTimerState });
