@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Spark – Privacy</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body { font-family: system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,sans-serif; margin:0; padding:48px 26px 80px; background:#ffffff; color:#1e293b; line-height:1.55; max-width:840px; }
+    h1 { font-size:38px; margin:0 0 6px; letter-spacing:-.5px; }
+    h2 { margin:42px 0 14px; font-size:22px; letter-spacing:-.5px; }
+    p { margin:0 0 18px; }
+    code { background:#f1f5f9; padding:2px 6px; border-radius:6px; font-size:90%; }
+    .card { background:#fff; border:1px solid #e2e8f0; border-radius:22px; padding:44px 46px 54px; box-shadow:0 4px 10px rgba(0,0,0,.04),0 30px 40px -28px rgba(0,0,0,.06); margin-bottom:42px; }
+    ul { padding-left:20px; margin:0 0 20px; }
+    li { margin-bottom:10px; }
+    a { color:#2563eb; text-decoration:none; }
+    a:hover { text-decoration:underline; }
+    .note { background:#f1f5f9; padding:16px 18px; border-left:4px solid #64748b; border-radius:8px; font-size:14px; color:#334155; }
+    footer { margin-top:60px; font-size:12px; color:#64748b; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Privacy & Data Use</h1>
+    <p>Spark is designed to respect your time and your privacy. We do not collect, transmit, sell, or monetize personal data. All state and preference storage happens locally in Chrome's extension storage areas.</p>
+
+    <h2>What We Store</h2>
+    <ul>
+      <li><strong>Timer state & statistics</strong> (focus sessions completed, total focus minutes, streak). Stored locally via <code>chrome.storage.local</code>. Resettable by you.</li>
+      <li><strong>Preferences</strong> (durations, content type toggles, notification preference, optional NASA API key). Stored via <code>chrome.storage.sync</code> so they can roam across Chrome profiles signed in with sync enabled.</li>
+      <li><strong>Optional debug logs</strong> are only kept if you enable Debug Mode. These never leave your machine and can be cleared.</li>
+    </ul>
+
+    <h2>What We Do NOT Collect</h2>
+    <ul>
+      <li>No browsing history</li>
+      <li>No personally identifiable information</li>
+      <li>No analytics, telemetry, tracking pixels, or fingerprinting</li>
+      <li>No third-party advertising libraries</li>
+    </ul>
+
+    <h2>Network Requests</h2>
+    <p>When break content types are enabled we call only the public APIs you opted into:</p>
+    <ul>
+      <li>Facts: <code>https://uselessfacts.jsph.pl/</code></li>
+      <li>Quotes: <code>https://api.quotegarden.io/</code></li>
+      <li>NASA APOD: <code>https://api.nasa.gov/</code> (using your key if provided; otherwise a limited demo key)</li>
+    </ul>
+    <p>Responses are rendered directly in a local tab; nothing is forwarded elsewhere.</p>
+
+    <h2>NASA API Key (Optional)</h2>
+    <p>If you supply a NASA API key it is stored in sync storage only and is transmitted solely to the NASA endpoint you enabled (APOD). Remove or clear the field anytime to revert to the public demo key.</p>
+
+    <h2>Permissions Justification</h2>
+    <ul>
+      <li><code>storage</code>: save your preferences, timer state, stats.</li>
+      <li><code>alarms</code>: drive focus / break timers reliably in the background.</li>
+      <li><code>notifications</code>: inform you when a session ends (can be disabled).</li>
+      <li><code>host_permissions</code>: limited to the small set of public APIs needed for content.</li>
+    </ul>
+
+    <h2>Removal & Data Deletion</h2>
+    <p>Uninstalling the extension removes all stored data. You can also clear everything from the in‑popup Debug Console (when Debug Mode is enabled) or via the Options page reset button.</p>
+
+    <h2>Contact</h2>
+    <p>Questions or concerns? Open an issue at the <a href="https://github.com/superchip/spark_chrome_extension" target="_blank">GitHub repository</a>.</p>
+
+    <div class="note"><strong>Plain Language Summary:</strong> Spark keeps things local, only fetches content you enable, and includes no tracking. Your productivity data stays yours.</div>
+
+    <footer>Version 1.0.1 • Last updated: 2025‑09‑12</footer>
+  </div>
+</body>
+</html>

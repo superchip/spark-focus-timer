@@ -19,7 +19,8 @@ class SparkTimer {
             enableQuotes: true,
             enableWebsites: true,
             enableNasa: true,
-            enableDebugMode: false
+            enableDebugMode: false,
+            nasaApiKey: ''
         };
 
         // Debug system
@@ -505,7 +506,11 @@ class SparkTimer {
                     this.openRandomWebsite();
                     return;
                 case 'nasa':
-                    url = 'https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY';
+                    if (this.settings.nasaApiKey && /^[A-Za-z0-9]{8,}$/.test(this.settings.nasaApiKey)) {
+                        url = `https://api.nasa.gov/planetary/apod?api_key=${this.settings.nasaApiKey}`;
+                    } else {
+                        url = 'https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY';
+                    }
                     break;
             }
 

@@ -1,101 +1,82 @@
-# ⚡ Spark - Smart Focus Timer
+# ⚡ Spark Focus Timer (Chrome / Chromium Extension)
 
-A Chrome extension that sparks productivity with meaningful breaks and curated discoveries.
+Minimal focus & break (Pomodoro-style) timer that turns breaks into uplifting micro‑discoveries: random facts, inspirational quotes, curated sites, and optional NASA imagery. No tracking, no accounts, just flow.
 
-## 🌟 Features
+## ✨ Core Features
 
-### Smart Focus Sessions
-- Customizable focus durations (15-60 minutes)
-- Visual progress indicator with animated ring
-- Persistent timer state across browser sessions
-- Automatic session switching
+| Area | Highlights |
+|------|------------|
+| Sessions | Focus / Short Break / Long Break cycle, manual start of breaks (no surprise tab spam) |
+| Persistence | Runs via background alarms even if popup closed |
+| Notifications | Desktop completion notifications with quick Start Break / Start Focus buttons |
+| Break Content | Facts, Quotes, Curated Sites, NASA APOD (random enabled type each break) |
+| Stats | Daily completed sessions, total focus minutes, streak indicator |
+| Options Page | Adjust durations, toggle content, optional NASA key, one-click reset |
+| Privacy | Zero analytics, zero external tracking, local + sync storage only |
+| Debug (Opt‑in) | Hidden console for QA: simulate sessions, inspect storage, export logs |
 
-### Meaningful Break Content
-- 🧠 **Interesting Facts**: Random educational content
-- 💭 **Inspirational Quotes**: Motivational messages
-- 🌐 **Cool Websites**: Curated interesting sites
-- 🚀 **NASA Discoveries**: Daily space imagery and facts
+## 🆕 v1.0.1
 
-### Productivity Tracking
-- Daily session counter
-- Total focus time tracking
-- Streak monitoring
-- Beautiful statistics display
+- Added `options.html` (Chrome Web Store friendly settings page)
+- Added `privacy.html` (transparent data & permission disclosure)
+- Manifest polish: `short_name`, `homepage_url`, `author`, removed unused `activeTab` permission
+- Optional NASA API key storage (improves APOD quota) – totally optional
 
-### Customization
-- Adjustable timer durations
-- Content type preferences
-- Notification settings
-- Modern, responsive interface
+## 🔐 Privacy Snapshot
 
-## 🚀 Installation
+No telemetry. No third‑party analytics. Only outgoing requests are to the enabled content APIs:
+`uselessfacts.jsph.pl`, `api.quotegarden.io`, `api.nasa.gov` (APOD), plus any curated site you open intentionally.
 
-### Development Setup
-1. Download all files to a `spark/` folder
-2. Create icons (16x16, 32x32, 48x48, 128x128 PNG files)
-3. Open `chrome://extensions/` in Chrome
-4. Enable "Developer Mode"
-5. Click "Load unpacked" and select the `spark/` folder
+Full statement: `privacy.html`.
 
-### Creating Icons
-You can create simple lightning bolt icons using:
-- Online tools like favicon.io or canva.com
-- Convert ⚡ emoji to PNG files
-- Design custom icons with the purple gradient theme
+## 🛠 Development (Load Unpacked)
+1. Clone repo
+2. Open `chrome://extensions/`
+3. Enable Developer Mode
+4. Load Unpacked → choose project folder
 
-## 📖 Usage
+## 🏪 Chrome Web Store Submission Checklist
 
-1. **Start Focus Session**: Click the extension icon and start your focus session
-2. **Take Breaks**: When the timer completes, enjoy curated break content
-3. **Track Progress**: Monitor your daily productivity in the stats section
-4. **Customize**: Adjust settings to match your preferences
+Already done in repo:
+- Manifest V3 compliant, minimal permissions (`storage`, `notifications`, `alarms` + required host permissions)
+- 16 / 32 / 48 / 128 icons in `icons/`
+- Privacy Policy page included (`privacy.html`)
+- Options page declared (`options.html`)
+- Version bumped to 1.0.1
 
-## 🎯 Philosophy
+Still recommended before publishing:
+- Capture 3–5 screenshots (1280×800 preferred). Ideas:
+	1. Focus timer running
+	2. Break session ready screen
+	3. Options page (durations + toggles)
+	4. Break content tab (NASA image / fact page)
+- (Optional) Create a promo tile / cover image (branding consistency)
 
-Spark reimagines time management by making breaks as valuable as work sessions. Instead of mindless scrolling, users discover interesting facts, get inspired by quotes, or explore fascinating websites during their breaks.
+Packaging (exclude dev docs if desired):
+```
+zip -r spark-focus-timer-1.0.1.zip . \
+	-x "*.git*" "*DEBUG*" "test-*" "*.py" "pyproject.toml" "TROUBLESHOOTING.md" "TESTING.md"
+```
 
-## 🔧 Technical Details
+## 🧪 Debug Mode (Optional)
+Enable via popup Settings → Debug Mode. Gives access to a debug console: simulate sessions, speed multiplier, storage inspector, export logs. Disabled by default; normal users never see it.
 
-- **Manifest V3**: Modern Chrome extension architecture
-- **Persistent State**: Timer continues even when popup is closed
-- **API Integration**: Real-time content from various educational APIs
-- **Local Storage**: Secure, private data storage
-- **Responsive Design**: Works across different screen sizes
+## 🔄 Session Logic
+After each Focus session: user manually starts the break (prevents surprise new tabs). After a Short Break or Long Break: user starts the next Focus session. Every 4th focus yields a long break.
 
-## 🌐 API Sources
+## 🔌 Optional NASA Key
+Enter on Options page to lift public demo key limits. Leave blank to use `DEMO_KEY`.
 
-- Facts API: uselessfacts.jsph.pl
-- Quotes API: api.quotegarden.io
-- NASA API: api.nasa.gov
-- Curated website collection
+## 🧩 Customization Pointers
+- Add new break API types in `background.js` / `popup.js`
+- Adjust styling in `styles.css`
+- Modify stats model in `popup.js` (`updateStats`, `updateStatsDisplay`)
 
-## 📊 Privacy
-
-Spark respects your privacy:
-- No personal data collection
-- Local storage only
-- API calls only for break content
-- No tracking or analytics
-
-## 🎨 Customization
-
-The extension is designed to be easily customizable:
-- Modify break content sources in `background.js`
-- Adjust themes in `styles.css`
-- Add new timer patterns in `popup.js`
-
-## 📄 License
-
-Open source - customize and extend as needed!
+## 🪪 License
+MIT (add a LICENSE file if distributing broadly).
 
 ## 🤝 Contributing
-
-Feel free to:
-- Add new break content sources
-- Improve the UI/UX
-- Add new timer patterns
-- Enhance statistics tracking
+PRs welcome: new content sources, accessibility improvements, UX refinements, localization.
 
 ---
-
-**Ready to spark your productivity?** Install Spark and transform your work sessions today! ⚡
+Enjoy calmer, more meaningful breaks – and ship more deep work. ⚡

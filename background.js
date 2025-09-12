@@ -42,7 +42,8 @@ chrome.runtime.onInstalled.addListener(() => {
                 enableQuotes: true,
                 enableWebsites: true,
                 enableNasa: true,
-                enableDebugMode: false
+                enableDebugMode: false,
+                nasaApiKey: ''
             };
             chrome.storage.sync.set({ settings: defaultSettings });
             debugLog('Default settings initialized', 'info');
@@ -703,7 +704,12 @@ async function openBreakContentBackground(settings) {
                 await openRandomWebsiteBackground();
                 return;
             case 'nasa':
-                url = 'https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY';
+                // Use stored NASA key if provided in settings (fallback to demo key)
+                if (settings.nasaApiKey && /^[A-Za-z0-9]{8,}$/.test(settings.nasaApiKey)) {
+                    url = `https://api.nasa.gov/planetary/apod?api_key=${settings.nasaApiKey}`;
+                } else {
+                    url = 'https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY';
+                }
                 break;
         }
 

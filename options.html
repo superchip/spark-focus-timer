@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Spark – Options</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body { font-family: system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,sans-serif; margin:0; padding:40px 28px 80px; background:#f7f9fc; color:#1f2933; }
+    h1 { margin:0 0 4px; font-size:30px; letter-spacing:-.5px; }
+    h2 { margin:32px 0 12px; font-size:20px; }
+    p.lead { margin:0 0 28px; color:#475569; }
+    .card { background:#fff; border:1px solid #e5e9ef; border-radius:18px; padding:28px 30px 32px; box-shadow:0 2px 4px rgba(0,0,0,.04),0 12px 24px -10px rgba(0,0,0,.08); max-width:920px; margin:0 auto 32px; }
+    .grid { display:grid; gap:28px; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); }
+    label span.small { display:block; font-size:12px; font-weight:500; color:#64748b; margin-top:4px; }
+    input[type=number] { width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:10px; font-size:14px; }
+    input[type=checkbox] { width:18px; height:18px; }
+    fieldset { border:none; padding:0; margin:0; }
+    .row { display:flex; align-items:center; gap:14px; margin-bottom:14px; }
+    .row:last-child { margin-bottom:0; }
+    .save-indicator { font-size:12px; color:#059669; font-weight:600; margin-left:8px; opacity:0; transition:opacity .35s ease; }
+    .save-indicator.visible { opacity:1; }
+    .section-note { font-size:12px; color:#64748b; margin-top:6px; line-height:1.4; }
+    .footer { text-align:center; font-size:12px; color:#64748b; margin-top:60px; }
+    a { color:#2563eb; text-decoration:none; }
+    a:hover { text-decoration:underline; }
+    .api-key { display:flex; gap:12px; }
+    .api-key input { flex:1; }
+    .badge { background:#eef2ff; color:#3730a3; font-size:11px; font-weight:600; padding:4px 8px; border-radius:999px; }
+    .danger { color:#b91c1c; }
+    button.reset { background:#fff; border:1px solid #d1d9e6; border-radius:10px; padding:10px 18px; cursor:pointer; font-weight:600; font-size:13px; }
+    button.reset:hover { background:#f1f5f9; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Spark Options</h1>
+    <p class="lead">Adjust default durations, choose what appears on breaks, and manage optional API keys. Changes save automatically.</p>
+
+    <h2>Durations</h2>
+    <div class="grid">
+      <label>Focus (minutes)
+        <input id="focusDuration" type="number" min="10" max="120" step="5" />
+        <span class="small">Work session length</span>
+      </label>
+      <label>Short Break (minutes)
+        <input id="shortBreak" type="number" min="3" max="30" />
+        <span class="small">Quick recharge</span>
+      </label>
+      <label>Long Break (minutes)
+        <input id="longBreak" type="number" min="10" max="60" step="5" />
+        <span class="small">After 4 focus sessions</span>
+      </label>
+    </div>
+
+    <h2>Break Content</h2>
+    <fieldset>
+      <div class="row"><input id="enableFacts" type="checkbox" /> <label for="enableFacts">Interesting Facts</label></div>
+      <div class="row"><input id="enableQuotes" type="checkbox" /> <label for="enableQuotes">Inspirational Quotes</label></div>
+      <div class="row"><input id="enableWebsites" type="checkbox" /> <label for="enableWebsites">Curated Websites</label></div>
+      <div class="row"><input id="enableNasa" type="checkbox" /> <label for="enableNasa">NASA Image / APOD</label></div>
+      <p class="section-note">At break start a random enabled type will open in a new tab. We only request public, free APIs. NASA content optionally supports a personal API key for higher quota.</p>
+    </fieldset>
+
+    <h2>Notifications</h2>
+    <fieldset>
+      <div class="row"><input id="enableNotifications" type="checkbox" /> <label for="enableNotifications">Enable desktop notifications for session completion</label></div>
+    </fieldset>
+
+    <h2>Optional API Keys</h2>
+    <p class="section-note">Provide a NASA API key (optional). If empty we fall back to the public demo key with limited quota.</p>
+    <div class="api-key">
+      <input id="nasaApiKey" type="text" placeholder="NASA API Key (optional)" />
+      <span class="badge">Optional</span>
+    </div>
+    <p class="section-note">Keys are stored locally (sync storage) only and never sent anywhere except directly to NASA's official API.</p>
+
+    <h2>Maintenance</h2>
+    <button class="reset" id="resetDefaults">Reset to Recommended Defaults</button>
+    <span id="saveIndicator" class="save-indicator">Saved ✓</span>
+  </div>
+  <div class="footer">Spark Focus Timer • <a href="https://github.com/superchip/spark_chrome_extension" target="_blank">Project Home</a> • <a href="privacy.html" target="_blank">Privacy</a></div>
+
+  <script src="options.js"></script>
+</body>
+</html>
