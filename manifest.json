@@ -15,7 +15,9 @@
   "host_permissions": [
     "https://api.quotegarden.io/*",
     "https://uselessfacts.jsph.pl/*",
-    "https://api.adviceslip.com/*"
+  "https://api.adviceslip.com/*",
+  "https://api.quotable.io/*",
+  "https://catfact.ninja/*"
   ],
   "background": {
     "service_worker": "background.js"

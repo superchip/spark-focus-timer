@@ -272,36 +272,26 @@ async function openBreakContent(type, url) {
 
         switch (type) {
             case 'fact':
-                debugLog('Fetching interesting fact', 'info');
-                const factData = await fetchJsonData(url);
+                debugLog('Fetching interesting fact (with fallbacks)', 'info');
+                const factData = await fetchFact();
                 if (factData && factData.text) {
                     content = `Did you know? ${factData.text}`;
                     finalUrl = createContentPage('Interesting Fact', content, '🧠');
                     debugLog('Successfully created fact content page', 'info');
                 } else {
-                    debugLog('Failed to fetch fact data', 'warn');
+                    debugLog('Failed to fetch fact data from all endpoints', 'warn');
                 }
                 break;
 
             case 'quote':
-                debugLog('Fetching inspirational quote', 'info');
-                const quoteData = await fetchJsonData(url);
-                if (quoteData && quoteData.data) {
-                    let quoteObj = null;
-                    if (Array.isArray(quoteData.data) && quoteData.data.length > 0) {
-                        quoteObj = quoteData.data[0];
-                    } else if (quoteData.data.quoteText) {
-                        quoteObj = quoteData.data; // legacy/non-array structure
-                    }
-                    if (quoteObj && quoteObj.quoteText) {
-                        content = `"${quoteObj.quoteText}" - ${quoteObj.quoteAuthor || 'Unknown'}`;
-                        finalUrl = createContentPage('Inspirational Quote', content, '💭');
-                        debugLog('Successfully created quote content page', 'info');
-                    } else {
-                        debugLog('Quote data structure unexpected', 'warn');
-                    }
+                debugLog('Fetching inspirational quote (with fallbacks)', 'info');
+                const quoteNorm = await fetchQuote();
+                if (quoteNorm && quoteNorm.quoteText) {
+                    content = `"${quoteNorm.quoteText}" - ${quoteNorm.quoteAuthor || 'Unknown'}`;
+                    finalUrl = createContentPage('Inspirational Quote', content, '💭');
+                    debugLog('Successfully created quote content page', 'info');
                 } else {
-                    debugLog('Failed to fetch quote data', 'warn');
+                    debugLog('Failed to fetch quote data from all endpoints', 'warn');
                 }
                 break;
 
@@ -331,23 +321,82 @@ async function openBreakContent(type, url) {
     }
 }
 
-// Fetch JSON data from APIs
-async function fetchJsonData(url) {
-    debugLog(`Fetching data from: ${url}`, 'info');
-    try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            debugLog(`HTTP ${response.status}: ${response.statusText}`, 'warn');
-            throw new Error('Network response was not ok');
+// Generic fetch with timeout, retries & fallback list
+async function robustFetchJson(urls, { timeoutMs = 8000, maxRetriesPerUrl = 1 } = {}) {
+    if (!Array.isArray(urls)) urls = [urls];
+    const errors = [];
+    for (const url of urls) {
+        for (let attempt = 0; attempt <= maxRetriesPerUrl; attempt++) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+            const started = Date.now();
+            try {
+                debugLog(`Fetch attempt ${attempt + 1} for ${url}`, 'info');
+                const res = await fetch(url, { signal: controller.signal, cache: 'no-store' });
+                clearTimeout(timer);
+                if (!res.ok) {
+                    const text = await res.text().catch(() => '');
+                    throw new Error(`HTTP ${res.status} ${res.statusText} :: ${text.slice(0,120)}`);
+                }
+                const json = await res.json();
+                debugLog(`Fetched ${url} in ${Date.now() - started}ms`, 'info');
+                return { data: json, source: url };
+            } catch (e) {
+                clearTimeout(timer);
+                const aborted = e.name === 'AbortError';
+                debugLog(`Fetch failed (${aborted ? 'timeout' : 'error'}) for ${url}: ${e.message}`, 'warn');
+                errors.push({ url, attempt, message: e.message });
+                // Retry same URL unless last attempt
+                if (attempt < maxRetriesPerUrl) continue;
+                // Break to next URL after final attempt
+                break;
+            }
         }
-        const data = await response.json();
-        debugLog('Successfully fetched and parsed JSON data', 'info');
-        return data;
-    } catch (error) {
-        debugLog(`Fetch error: ${error.message}`, 'error');
-        console.error('Fetch error:', error);
-        return null;
     }
+    debugLog(`All fetch attempts failed: ${errors.map(e => e.url + '#' + (e.attempt+1) + ':' + e.message).join(' | ')}`, 'error');
+    return null;
+}
+
+// Backwards-compatible wrapper for existing calls expecting single URL
+async function fetchJsonData(url) {
+    const result = await robustFetchJson(url);
+    return result ? result.data : null;
+}
+
+// Specialized helpers for content types with multiple fallback endpoints
+async function fetchFact() {
+    // Primary + fallbacks (must also be in host_permissions)
+    const endpoints = [
+        'https://uselessfacts.jsph.pl/random.json?language=en',
+        'https://catfact.ninja/fact'
+    ];
+    const result = await robustFetchJson(endpoints, { timeoutMs: 7000, maxRetriesPerUrl: 1 });
+    if (!result) return null;
+    // Normalize to { text }
+    const d = result.data;
+    if (d && d.text) return { text: d.text };
+    if (d && d.fact) return { text: d.fact };
+    return null;
+}
+
+async function fetchQuote() {
+    const endpoints = [
+        'https://api.quotegarden.io/api/v3/quotes/random',
+        'https://api.quotable.io/random'
+    ];
+    const result = await robustFetchJson(endpoints, { timeoutMs: 7000, maxRetriesPerUrl: 1 });
+    if (!result) return null;
+    const d = result.data;
+    // QuoteGarden structure
+    if (d && Array.isArray(d.data) && d.data[0]) {
+        const q = d.data[0];
+        return { quoteText: q.quoteText || q.quote || q.quoteText, quoteAuthor: q.quoteAuthor || q.quoteAuthor || q.author };
+    }
+    // Quotable structure
+    if (d && d.content) {
+        return { quoteText: d.content, quoteAuthor: d.author || 'Unknown' };
+    }
+    return null;
 }
 
 // Create a content page for break content
@@ -674,21 +723,12 @@ async function openBreakContentBackground(settings) {
     debugLog(`Opening break content: ${randomType}`, 'info');
     
     try {
-        let url;
-        switch (randomType) {
-            case 'fact':
-                url = 'https://uselessfacts.jsph.pl/random.json?language=en';
-                break;
-            case 'quote':
-                url = 'https://api.quotegarden.io/api/v3/quotes/random';
-                break;
-            case 'website':
-                await openRandomWebsiteBackground();
-                return;
-            
+        if (randomType === 'website') {
+            await openRandomWebsiteBackground();
+            return;
         }
-
-        await openBreakContent(randomType, url);
+        // For fact/quote pass placeholder (unused) URL for backwards compatibility
+        await openBreakContent(randomType, '');
     } catch (error) {
         debugLog(`Failed to open break content: ${error.message}`, 'error');
     }
@@ -983,13 +1023,9 @@ function testBreakContent(contentType = null) {
     
     debugLog(`Testing break content type: ${testType}`, 'info');
     
-    const testUrls = {
-        fact: 'https://uselessfacts.jsph.pl/random.json?language=en',
-        quote: 'https://api.quotegarden.io/api/v3/quotes/random',
-        website: 'https://theuselessweb.com/'
-    };
-    
-    openBreakContent(testType, testUrls[testType]);
+    // For website still pass a URL; for fact/quote URL ignored
+    const url = testType === 'website' ? 'https://theuselessweb.com/' : '';
+    openBreakContent(testType, url);
 }
 
 // Export debug logs for analysis
