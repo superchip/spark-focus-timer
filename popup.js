@@ -121,7 +121,11 @@ class SparkTimer {
         
         if (this.timeLeft > 0) {
             this.isRunning = true;
+            // Start ticking and immediately sync UI controls so Pause button shows (fix state loss on reopen)
             this.startTimer();
+            this.updateDisplay();
+            this.updateControls();
+            this.debug('Restored running session and updated controls (Pause visible)', 'info');
             
             // Restart background timer for remaining time
             chrome.runtime.sendMessage({
