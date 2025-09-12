@@ -358,95 +358,69 @@ function createContentPage(title, content, emoji, isHtml = false) {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>${title} - Spark</title>
         <style>
-            * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-            }
-            
+            * { margin:0; padding:0; box-sizing:border-box; }
             body {
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                font-family: system-ui, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                background: #f2f5f9;
                 min-height: 100vh;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                padding: 20px;
-                color: white;
+                display:flex;
+                align-items:center;
+                justify-content:center;
+                padding:32px 20px;
+                color:#222;
+                line-height:1.5;
             }
-            
             .container {
-                max-width: 800px;
-                background: rgba(255, 255, 255, 0.1);
-                backdrop-filter: blur(20px);
-                border-radius: 20px;
-                padding: 40px;
-                text-align: center;
-                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-                border: 1px solid rgba(255, 255, 255, 0.2);
+                max-width:860px;
+                background:#fff;
+                border-radius:24px;
+                padding:48px 44px;
+                text-align:center;
+                box-shadow:0 4px 12px rgba(0,0,0,0.06), 0 20px 40px -8px rgba(0,0,0,0.08);
+                border:1px solid #e3e8ef;
             }
-            
-            .header {
-                margin-bottom: 30px;
-            }
-            
-            .emoji {
-                font-size: 48px;
-                margin-bottom: 16px;
-                display: block;
-            }
-            
-            .title {
-                font-size: 28px;
-                font-weight: 600;
-                margin-bottom: 8px;
-                color: white;
-            }
-            
-            .subtitle {
-                font-size: 16px;
-                color: rgba(255, 255, 255, 0.8);
-                margin-bottom: 30px;
-            }
-            
+            .header { margin-bottom:28px; }
+            .emoji { font-size:56px; margin-bottom:12px; display:block; }
+            .title { font-size:30px; font-weight:600; margin-bottom:6px; color:#111; letter-spacing:-0.5px; }
+            .subtitle { font-size:15px; color:#555; margin-bottom:32px; }
             .content {
-                font-size: 18px;
-                line-height: 1.6;
-                margin-bottom: 30px;
-                ${isHtml ? '' : 'background: rgba(255, 255, 255, 0.1); padding: 24px; border-radius: 12px; border-left: 4px solid white;'}
+                font-size:18px;
+                text-align:left;
+                margin:0 auto 34px;
+                max-width:680px;
+                ${isHtml ? '' : 'background:#f8fafc; padding:26px 28px; border-radius:14px; border-left:5px solid #667eea;'}
+                color:#222;
             }
-            
+            .content p { margin-bottom:1em; }
+            .content p:last-child { margin-bottom:0; }
             .timer-info {
-                font-size: 14px;
-                color: rgba(255, 255, 255, 0.7);
-                margin-top: 30px;
-                padding-top: 20px;
-                border-top: 1px solid rgba(255, 255, 255, 0.2);
+                font-size:13px;
+                color:#555;
+                margin-top:34px;
+                padding-top:22px;
+                border-top:1px solid #e5e9ef;
             }
-            
             .close-btn {
-                background: rgba(255, 255, 255, 0.2);
-                border: none;
-                border-radius: 12px;
-                padding: 12px 24px;
-                color: white;
-                font-size: 14px;
-                font-weight: 600;
-                cursor: pointer;
-                transition: all 0.2s ease;
-                margin-top: 20px;
+                background:#667eea;
+                border:1px solid #546adf;
+                border-radius:14px;
+                padding:14px 26px;
+                color:#fff;
+                font-size:15px;
+                font-weight:600;
+                cursor:pointer;
+                letter-spacing:.3px;
+                transition:background .18s ease, transform .18s ease, box-shadow .18s ease;
+                margin-top:10px;
+                box-shadow:0 2px 4px rgba(0,0,0,0.08), 0 6px 18px -6px rgba(102,126,234,0.45);
             }
-            
-            .close-btn:hover {
-                background: rgba(255, 255, 255, 0.3);
-                transform: translateY(-2px);
-            }
-            
-            img {
-                max-width: 100%;
-                height: auto;
-                border-radius: 12px;
-                margin: 20px 0;
+            .close-btn:hover { background:#546adf; transform:translateY(-2px); }
+            .close-btn:active { transform:translateY(0); }
+            img { max-width:100%; height:auto; border-radius:16px; margin:24px 0; box-shadow:0 4px 16px -4px rgba(0,0,0,0.18); }
+            @media (max-width:680px){
+                .container { padding:40px 28px; }
+                .title { font-size:26px; }
+                .content { font-size:17px; }
             }
         </style>
     </head>
