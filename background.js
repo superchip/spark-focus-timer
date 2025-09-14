@@ -41,8 +41,7 @@ chrome.runtime.onInstalled.addListener(() => {
                 enableFacts: true,
                 enableQuotes: true,
                 enableWebsites: true,
-                enableDebugMode: false,
-                enableWidget: true
+                enableDebugMode: false
             };
             chrome.storage.sync.set({ settings: defaultSettings });
             debugLog('Default settings initialized', 'info');
@@ -54,9 +53,6 @@ chrome.runtime.onInstalled.addListener(() => {
     // Clear any existing alarms on install
     chrome.alarms.clearAll();
     debugLog('Cleared all existing alarms', 'info');
-
-    // After install, attempt to inject widget (if enabled) into existing tabs
-    injectWidgetIntoAllTabs();
 });
 
 // Handle service worker startup
@@ -65,9 +61,6 @@ chrome.runtime.onStartup.addListener(() => {
     
     // Check if there was a running timer that needs to be restored
     checkTimerState();
-
-    // Re-inject widget across tabs (covers browser restart)
-    injectWidgetIntoAllTabs();
 });
 
 // Keep service worker alive when needed
@@ -144,9 +137,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             break;
         case 'debugCommand':
             handleDebugCommand(request.command, request);
-            break;
-        case 'injectWidgetAll':
-            injectWidgetIntoAllTabs();
             break;
     }
 });
@@ -1023,31 +1013,6 @@ function handleDebugCommand(command, request) {
             break;
         default:
             debugLog(`Unknown debug command: ${command}`, 'warn');
-    }
-}
-
-// Inject widget into all eligible tabs if user enabled it
-async function injectWidgetIntoAllTabs() {
-    try {
-        const sync = await chrome.storage.sync.get(['settings']);
-        if (sync.settings && sync.settings.enableWidget === false) {
-            debugLog('Widget disabled - skipping mass injection', 'info');
-            return;
-        }
-        const tabs = await chrome.tabs.query({});
-        for (const tab of tabs) {
-            if (!tab.id || !tab.url) continue;
-            // Skip restricted schemes
-            if (/^(chrome|edge|opera|brave|about|chrome-extension|moz-extension):/i.test(tab.url)) continue;
-            try {
-                await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['widget.js'] });
-            } catch (e) {
-                // Ignore tabs we can't inject into
-            }
-        }
-        debugLog('Widget injected into existing tabs (best effort)', 'info');
-    } catch (e) {
-        debugLog(`Failed mass widget injection: ${e.message}`, 'error');
     }
 }
 
