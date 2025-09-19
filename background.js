@@ -138,8 +138,31 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         case 'debugCommand':
             handleDebugCommand(request.command, request);
             break;
+        case 'dismissAllNotifications':
+            dismissAllNotifications();
+            break;
     }
 });
+
+// Dismiss all actionable Spark notifications (those we stored metadata for)
+async function dismissAllNotifications() {
+    try {
+        const all = await chrome.storage.local.get(null);
+        const notifKeys = Object.keys(all).filter(k => k.startsWith('notification_'));
+        let cleared = 0;
+        await Promise.all(notifKeys.map(async k => {
+            const id = k.replace('notification_', '');
+            try {
+                const ok = await chrome.notifications.clear(id);
+                if (ok) cleared++;
+            } catch (e) {}
+            chrome.storage.local.remove([k]);
+        }));
+        debugLog(`dismissAllNotifications cleared=${cleared} trackedKeys=${notifKeys.length}`,'info');
+    } catch (e) {
+        debugLog(`dismissAllNotifications error: ${e.message}`,'error');
+    }
+}
 
 // Start background timer using alarms
 function startBackgroundTimer(durationMinutes, sessionInfo) {
@@ -305,10 +328,12 @@ async function openBreakContent(type, url) {
         }
 
         if (finalUrl) {
-            chrome.tabs.create({ url: finalUrl });
+            const created = await chrome.tabs.create({ url: finalUrl });
             debugLog('Successfully opened tab with content', 'info');
             // Notify popup (if open) that content was opened
             chrome.runtime.sendMessage({ action: 'breakContentOpened', type, url: finalUrl }).catch(() => {});
+            // Attempt to surface extension popup
+            showExtensionPopupForBreak();
         } else {
             debugLog('No content URL generated', 'warn');
         }
@@ -750,8 +775,33 @@ async function openRandomWebsiteBackground() {
     ];
     
     const randomSite = websites[Math.floor(Math.random() * websites.length)];
-    chrome.tabs.create({ url: randomSite });
-    debugLog(`Opened random website: ${randomSite}`, 'info');
+    try {
+        await chrome.tabs.create({ url: randomSite });
+        debugLog(`Opened random website: ${randomSite}`, 'info');
+        showExtensionPopupForBreak();
+    } catch (e) {
+        debugLog(`Failed to open random website: ${e.message}`, 'error');
+    }
+}
+
+// Cooldown tracker to avoid spamming popup open
+let lastPopupOpenTs = 0;
+function showExtensionPopupForBreak() {
+    const now = Date.now();
+    if (now - lastPopupOpenTs < 2000) { // 2s cooldown
+        debugLog('Popup open suppressed (cooldown)', 'info');
+        return;
+    }
+    lastPopupOpenTs = now;
+    try {
+        chrome.action.openPopup().then(() => {
+            debugLog('Extension popup opened after break content tab', 'info');
+        }).catch(err => {
+            debugLog(`Failed to open extension popup after break content: ${err.message}`, 'warn');
+        });
+    } catch (e) {
+        debugLog(`Exception opening popup after break content: ${e.message}`, 'error');
+    }
 }
 
 // Cleanup object URLs periodically to prevent memory leaks

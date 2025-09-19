@@ -319,6 +319,9 @@ class SparkTimer {
             this.interval = null;
         }
 
+    // Dismiss any pending actionable notifications when user explicitly starts a session
+    chrome.runtime.sendMessage({ action: 'dismissAllNotifications' });
+
         if (this.isPaused) {
             this.isPaused = false;
             this.debug('Timer resumed', 'info');
