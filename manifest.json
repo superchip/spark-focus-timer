@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Spark Focus Timer",
   "short_name": "Spark",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Focus / break (Pomodoro-style) timer with uplifting facts, quotes & curated sites during breaks.",
   "author": "Spark Project",
   "homepage_url": "https://github.com/superchip/spark_chrome_extension",
@@ -15,9 +15,8 @@
   "host_permissions": [
     "https://api.quotegarden.io/*",
     "https://uselessfacts.jsph.pl/*",
-  "https://api.adviceslip.com/*",
-  "https://api.quotable.io/*",
-  "https://catfact.ninja/*"
+    "https://api.quotable.io/*",
+    "https://catfact.ninja/*"
   ],
   "background": {
     "service_worker": "background.js"
