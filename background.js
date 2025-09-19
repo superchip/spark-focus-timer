@@ -192,8 +192,9 @@ function showNotification(title, message, sessionType = null) {
         iconUrl: 'icons/icon48.png',
         title: title,
         message: message,
-    priority: 2,
-    requireInteraction: false // Allow auto-dismiss; we'll also set a manual timeout
+        priority: 2,
+        // Keep notification until user acts for session transitions
+        requireInteraction: !!sessionType
     };
     
     // Add action buttons based on session type
@@ -243,17 +244,16 @@ function showNotification(title, message, sessionType = null) {
                         [`notification_${notificationId}`]: { sessionType: sessionType }
                     });
                 }
-                // Manual auto-dismiss after 12s if still present
-                setTimeout(async () => {
-                    try {
-                        // Attempt to clear; if already cleared nothing happens
-                        await chrome.notifications.clear(notificationId);
-                        chrome.storage.local.remove([`notification_${notificationId}`]);
-                        debugLog(`Notification auto-dismissed: ${notificationId}`,'info');
-                    } catch (e) {
-                        // Ignore
-                    }
-                }, 12000);
+                // Manual auto-dismiss fallback only if not actionable
+                if (!sessionType) {
+                    setTimeout(async () => {
+                        try {
+                            await chrome.notifications.clear(notificationId);
+                            chrome.storage.local.remove([`notification_${notificationId}`]);
+                            debugLog(`Notification auto-dismissed: ${notificationId}`,'info');
+                        } catch (e) {}
+                    }, 12000);
+                }
             }
         });
     } catch (error) {
@@ -490,7 +490,7 @@ function createContentPage(title, content, emoji, isHtml = false) {
             <div class="timer-info">
                 <p>⚡ Brought to you by Spark</p>
                 <p>Close this tab when you're ready to get back to work!</p>
-                <button class="close-btn" onclick="window.close()">Close & Return to Work</button>
+                <button class="close-btn" onclick="window.close()">Close</button>
             </div>
         </div>
         
@@ -771,10 +771,22 @@ chrome.storage.local.get(['backgroundDebugLogs'], (result) => {
 // Handle notification clicks
 chrome.notifications.onClicked.addListener((notificationId) => {
     debugLog(`Notification clicked: ${notificationId}`, 'info');
-    
-    // Body click just dismisses (per spec)
-    chrome.notifications.clear(notificationId);
-    chrome.storage.local.remove([`notification_${notificationId}`]);
+    // Body click: if this notification represented a completed focus session,
+    // treat body click as implicit "start break" to give user faster flow.
+    chrome.storage.local.get([`notification_${notificationId}`]).then(async store => {
+        const data = store[`notification_${notificationId}`];
+        if (data && data.sessionType === 'focus') {
+            debugLog('Body click on focus-complete notification -> starting break automatically', 'info');
+            await handleSessionStartFromNotification('break', notificationId);
+        } else {
+            debugLog('Body click on non-focus or missing data notification -> dismissing', 'info');
+            chrome.notifications.clear(notificationId);
+            chrome.storage.local.remove([`notification_${notificationId}`]);
+        }
+    }).catch(() => {
+        chrome.notifications.clear(notificationId);
+        chrome.storage.local.remove([`notification_${notificationId}`]);
+    });
 });
 
 // Handle notification button clicks
@@ -796,11 +808,11 @@ chrome.notifications.onButtonClicked.addListener(async (notificationId, buttonIn
         // Handle button clicks based on session type and button index
         if (sessionType === 'focus' && buttonIndex === 0) {
             // Start break button clicked
-            debugLog('Starting break session from notification', 'info');
+            debugLog('Starting break session from notification (button path)', 'info');
             await handleSessionStartFromNotification('break', notificationId);
         } else if (sessionType === 'break' && buttonIndex === 0) {
             // Start focus button clicked
-            debugLog('Starting focus session from notification', 'info');
+            debugLog('Starting focus session from notification (button path)', 'info');
             await handleSessionStartFromNotification('focus', notificationId);
         } else if (buttonIndex === 1) {
             // Dismiss button
@@ -820,6 +832,9 @@ chrome.notifications.onButtonClicked.addListener(async (notificationId, buttonIn
 // Handle session start from notification with popup detection
 async function handleSessionStartFromNotification(sessionType, notificationId) {
     try {
+    // Keep SW alive during potentially longer async logic
+    keepServiceWorkerAlive();
+    debugLog(`handleSessionStartFromNotification invoked for ${sessionType}`, 'info');
         // Try to send a message to check if popup is open
         let popupIsOpen = false;
         
@@ -848,7 +863,7 @@ async function handleSessionStartFromNotification(sessionType, notificationId) {
             debugLog('Popup is not open, will open popup and start session', 'info');
         }
         
-        if (popupIsOpen) {
+    if (popupIsOpen) {
             // Popup is open - just send start command to popup
             chrome.runtime.sendMessage({
                 action: 'startSessionFromNotification',
@@ -861,8 +876,9 @@ async function handleSessionStartFromNotification(sessionType, notificationId) {
             chrome.notifications.clear(notificationId);
             chrome.storage.local.remove([`notification_${notificationId}`]);
             
-        } else {
+    } else {
             // Popup is not open - start session in background, then open popup
+            debugLog('Starting session fully in background (popup closed)', 'info');
             await startNextSessionFromNotification(sessionType);
             
             // Open the popup to show the running timer
@@ -888,11 +904,12 @@ async function handleSessionStartFromNotification(sessionType, notificationId) {
 // Start next session from notification button
 async function startNextSessionFromNotification(sessionType) {
     try {
+    debugLog(`startNextSessionFromNotification: requested ${sessionType}`, 'info');
         // Get current timer state
         const result = await chrome.storage.local.get(['timerState']);
         
         if (!result.timerState) {
-            debugLog('No timer state found for notification action', 'warn');
+            debugLog('No timer state found for notification action (cannot start)', 'warn');
             return;
         }
         
@@ -909,7 +926,7 @@ async function startNextSessionFromNotification(sessionType) {
         let duration;
         let actualSessionType;
         
-        if (sessionType === 'focus') {
+    if (sessionType === 'focus') {
             // If a break is currently running and user chose to start focus early, terminate break early
             if ((timerState.currentSession === 'shortBreak' || timerState.currentSession === 'longBreak') && timerState.isRunning) {
                 debugLog('Early break termination requested - starting focus immediately', 'info');
@@ -964,15 +981,38 @@ async function startNextSessionFromNotification(sessionType) {
         
         // If starting a break session, open break content and update state
         if (sessionType === 'break') {
-            await openBreakContentBackground(settings);
-            
-            // Mark break content as opened and save again
-            newTimerState.breakContentOpened = true;
-            await chrome.storage.local.set({ timerState: newTimerState });
-            debugLog('Break content opened and state updated', 'info');
+            if (!newTimerState.breakContentOpened) {
+                debugLog('Attempting to open break content (notification path)', 'info');
+                let opened = false;
+                try {
+                    await openBreakContentBackground(settings);
+                    opened = true;
+                } catch (e) {
+                    debugLog(`Primary break content open failed: ${e.message}`, 'error');
+                }
+                if (!opened) {
+                    // Guarantee some content opens
+                    try {
+                        debugLog('Opening fallback random website (notification path)', 'warn');
+                        await openRandomWebsiteBackground();
+                        opened = true;
+                    } catch (e2) {
+                        debugLog(`Fallback website open failed: ${e2.message}`, 'error');
+                    }
+                }
+                if (opened) {
+                    newTimerState.breakContentOpened = true;
+                    await chrome.storage.local.set({ timerState: newTimerState });
+                    debugLog('Break content opened and state updated (notification path)', 'info');
+                } else {
+                    debugLog('Unable to open any break content after all attempts', 'error');
+                }
+            } else {
+                debugLog('Break content already marked opened, skipping (notification path)', 'info');
+            }
         }
         
-        debugLog(`Started ${actualSessionType} session from notification (${duration} minutes)`, 'info');
+    debugLog(`Started ${actualSessionType} session from notification (${duration} minutes). breakContentOpened=${newTimerState.breakContentOpened}`, 'info');
         
         // Notify any open popup that the session has started
         chrome.runtime.sendMessage({
