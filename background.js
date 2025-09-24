@@ -571,7 +571,8 @@ async function checkTimerState() {
         
         if (result.timerState && result.timerState.isRunning) {
             const now = Date.now();
-            const elapsed = Math.floor((now - result.timerState.startTime) / 1000);
+            const startTime = result.timerState.sessionStartTime || result.timerState.startTime;
+            const elapsed = Math.floor((now - startTime) / 1000);
             const timeLeft = result.timerState.timeLeft - elapsed;
             
             if (timeLeft <= 0) {
@@ -678,7 +679,7 @@ async function handleTimerComplete() {
             sessionCount: sessionCount,
             timeLeft: nextDuration * 60,
             totalTime: nextDuration * 60,
-            startTime: null,
+            sessionStartTime: null,
             breakContentOpened: false
         };
         
@@ -1010,7 +1011,7 @@ async function startNextSessionFromNotification(sessionType) {
             sessionCount: timerState.sessionCount,
             timeLeft: duration * 60,
             totalTime: duration * 60,
-            startTime: Date.now(),
+            sessionStartTime: Date.now(),
             breakContentOpened: false
         };
         
