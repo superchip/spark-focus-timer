@@ -40,7 +40,7 @@ html, body, .container {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 24px 16px;
+    padding: 16px 24px 12px;
     background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
 }
@@ -103,7 +103,7 @@ html, body, .container {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 20px;
+    padding: 12px 20px;
     position: relative;
 }
 
@@ -114,16 +114,16 @@ html, body, .container {
 
 .progress-timer {
     position: relative;
-    width: 200px;
-    height: 200px;
-    margin: 0 auto 16px;
+    width: 180px;
+    height: 180px;
+    margin: 0 auto 12px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .time-left {
-    font-size: 52px;
+    font-size: 48px;
     font-weight: 300;
     color: #fff;
     text-shadow: 0 2px 12px rgba(0,0,0,0.4);
@@ -134,15 +134,15 @@ html, body, .container {
 .session-type {
     font-size: 14px;
     color: rgba(255, 255, 255, 0.8);
-    margin-bottom: 20px;
+    margin-bottom: 12px;
     font-weight: 400;
     text-transform: uppercase;
     letter-spacing: 2px;
 }
 
-.progress-ring-svg { transform: rotate(-90deg); width: 200px; height: 200px; }
+.progress-ring-svg { transform: rotate(-90deg); width: 180px; height: 180px; }
 .progress-ring-circle-bg { fill: none; stroke: rgba(255,255,255,0.1); stroke-width: 3; }
-.progress-ring-circle { fill: none; stroke: #fff; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 565.49; stroke-dashoffset: 565.49; transition: stroke-dashoffset 1s linear, stroke 0.3s ease; filter: drop-shadow(0 0 6px rgba(255,255,255,0.4)); }
+.progress-ring-circle { fill: none; stroke: #fff; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 502.65; stroke-dashoffset: 502.65; transition: stroke-dashoffset 1s linear, stroke 0.3s ease; filter: drop-shadow(0 0 6px rgba(255,255,255,0.4)); }
 
 body.timer-active .progress-ring-circle { stroke: #4ade80; }
 body.break-active .progress-ring-circle { stroke: #fbbf24; }
@@ -166,7 +166,7 @@ body.timer-active .progress-timer:after, body.break-active .progress-timer:after
 
 /* Controls */
 .controls {
-    padding: 0 24px 24px;
+    padding: 0 24px 16px;
     display: flex;
     gap: 16px;
     justify-content: center;
@@ -223,7 +223,7 @@ body.timer-active .progress-timer:after, body.break-active .progress-timer:after
 /* App Title */
 .app-title {
     text-align: center;
-    padding: 20px 24px 12px;
+    padding: 12px 24px 8px;
 }
 
 .app-title h2 {
@@ -238,7 +238,7 @@ body.timer-active .progress-timer:after, body.break-active .progress-timer:after
 .stats {
     display: flex;
     justify-content: space-around;
-    padding: 16px 24px 20px;
+    padding: 12px 24px 16px;
     background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
 }
