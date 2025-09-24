@@ -7,17 +7,32 @@
 body {
     width: 400px;
     min-height: 600px;
+    max-height: 600px;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: linear-gradient(135deg, #8B5FBF 0%, #6B46C1 50%, #7C3AED 100%);
     color: #333;
     overflow: hidden;
 }
 
+/* Hide all possible scrollbars globally except for debug panels */
+::-webkit-scrollbar:not(.debug-logs *):not(.storage-display *) {
+    display: none !important;
+    width: 0 !important;
+    background: transparent !important;
+}
+
+html, body, .container {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+}
+
 .container {
     padding: 0;
     height: 100vh;
+    max-height: 600px;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 
 /* Header */
@@ -254,6 +269,8 @@ body.timer-active .progress-timer:after, body.break-active .progress-timer:after
     border-radius: 12px;
     backdrop-filter: blur(10px);
     text-align: center;
+    max-height: 80px;
+    overflow: hidden;
 }
 
 .break-header {
@@ -431,6 +448,7 @@ body.timer-active .progress-timer:after, body.break-active .progress-timer:after
 
 .break-active {
     background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+    overflow: hidden !important;
 }
 
 /* Add decorative sparkle element */
