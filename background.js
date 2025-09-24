@@ -715,14 +715,9 @@ async function updateBackgroundStats(timerState, settings) {
         stats.completedSessions++;
         stats.totalFocusTime += settings.focusDuration;
         
-        // Update streak
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        
-        if (stats.lastSessionDate === yesterday.toDateString() || stats.completedSessions === 1) {
-            stats.currentStreak = stats.completedSessions;
-        }
-        
+        // Focus streak is simply the number of completed focus sessions today
+        stats.currentStreak = stats.completedSessions;
+
         stats.lastSessionDate = today;
         
         debugLog(`Stats updated: ${stats.completedSessions} sessions, ${stats.totalFocusTime} minutes`, 'info');
