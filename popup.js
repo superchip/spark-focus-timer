@@ -8,6 +8,7 @@ class SparkTimer {
         this.totalTime = 0;
         this.interval = null;
         this.breakContentOpened = false; // Track if break content has been opened for current session
+        this.sessionStartTime = null; // Track when the current session actually started
         
         // Settings
         this.settings = {
@@ -109,14 +110,22 @@ class SparkTimer {
     }
 
     async restoreTimerState(state) {
-        const now = Date.now();
-        const elapsed = Math.floor((now - state.startTime) / 1000);
-        
         this.currentSession = state.currentSession;
         this.sessionCount = state.sessionCount;
-        this.timeLeft = Math.max(0, state.timeLeft - elapsed);
         this.totalTime = state.totalTime;
         this.breakContentOpened = state.breakContentOpened || false;
+
+        if (state.sessionStartTime) {
+            // New logic: calculate elapsed time from actual session start
+            const now = Date.now();
+            const elapsed = Math.floor((now - state.sessionStartTime) / 1000);
+            this.timeLeft = Math.max(0, state.totalTime - elapsed);
+            this.sessionStartTime = state.sessionStartTime;
+        } else {
+            // Fallback for old saved states or missing sessionStartTime: use saved timeLeft
+            this.timeLeft = state.timeLeft;
+            this.sessionStartTime = Date.now() - (this.totalTime - this.timeLeft) * 1000;
+        }
         
         if (this.timeLeft > 0) {
             this.isRunning = true;
@@ -324,6 +333,10 @@ class SparkTimer {
 
         if (this.isPaused) {
             this.isPaused = false;
+            // When resuming, adjust sessionStartTime to account for the time that has already elapsed
+            if (this.sessionStartTime) {
+                this.sessionStartTime = Date.now() - (this.totalTime - this.timeLeft) * 1000;
+            }
             this.debug('Timer resumed', 'info');
         } else {
             // Start new (or replacement) session
@@ -339,6 +352,7 @@ class SparkTimer {
 
             this.timeLeft = this.getCurrentSessionDuration() * 60;
             this.totalTime = this.timeLeft;
+            this.sessionStartTime = Date.now(); // Record when this session actually started
             this.debug(`Starting ${this.currentSession} session (${this.getCurrentSessionDuration()} minutes)`, 'info');
 
             // Open break content when starting a break session (only once per session)
@@ -738,7 +752,7 @@ class SparkTimer {
                 sessionCount: this.sessionCount,
                 timeLeft: this.timeLeft,
                 totalTime: this.totalTime,
-                startTime: Date.now() - (this.totalTime - this.timeLeft) * 1000,
+                sessionStartTime: this.sessionStartTime,
                 breakContentOpened: this.breakContentOpened
             };
             await chrome.storage.local.set({ timerState: state });
@@ -754,7 +768,7 @@ class SparkTimer {
             sessionCount: this.sessionCount,
             timeLeft: this.timeLeft,
             totalTime: this.totalTime,
-            startTime: null,
+            sessionStartTime: null,
             breakContentOpened: this.breakContentOpened
         };
         await chrome.storage.local.set({ timerState: state });
