@@ -716,8 +716,6 @@ class SparkTimer {
     }
 
     updateStatsDisplay(stats) {
-        document.getElementById('completedSessions').textContent = stats.completedSessions;
-        
         const hours = Math.floor(stats.totalFocusTime / 60);
         const minutes = stats.totalFocusTime % 60;
         let timeText = '';
@@ -728,7 +726,7 @@ class SparkTimer {
             timeText = `${minutes}m`;
         }
         document.getElementById('totalFocusTime').textContent = timeText;
-        
+
         document.getElementById('currentStreak').textContent = stats.currentStreak;
     }
 
