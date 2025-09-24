@@ -563,7 +563,7 @@ class SparkTimer {
         
         // Update progress ring
     const progress = this.totalTime > 0 ? (this.totalTime - this.timeLeft) / this.totalTime : 0;
-    const radius = 64; // updated SVG circle radius
+    const radius = 90; // updated SVG circle radius
     const circumference = 2 * Math.PI * radius;
     const offset = circumference - (progress * circumference);
     const circleEl = document.getElementById('progressCircle');

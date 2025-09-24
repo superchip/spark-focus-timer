@@ -8,7 +8,7 @@ body {
     width: 400px;
     min-height: 600px;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #8B5FBF 0%, #6B46C1 50%, #7C3AED 100%);
     color: #333;
     overflow: hidden;
 }
@@ -99,31 +99,35 @@ body {
 
 .progress-timer {
     position: relative;
-    width: 140px;
-    height: 140px;
-    margin: 0 auto 12px;
+    width: 200px;
+    height: 200px;
+    margin: 0 auto 16px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .time-left {
-    font-size: 46px;
-    font-weight: 500;
+    font-size: 52px;
+    font-weight: 300;
     color: #fff;
-    text-shadow: 0 2px 8px rgba(0,0,0,0.35);
+    text-shadow: 0 2px 12px rgba(0,0,0,0.4);
     position: absolute;
+    letter-spacing: -1px;
 }
 
 .session-type {
-    font-size: 16px;
-    color: rgba(255, 255, 255, 0.9);
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
     margin-bottom: 20px;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 2px;
 }
 
-.progress-ring-svg { transform: rotate(-90deg); }
-.progress-ring-circle-bg { fill: none; stroke: rgba(255,255,255,0.15); stroke-width: 6; }
-.progress-ring-circle { fill: none; stroke: #fff; stroke-width: 6; stroke-linecap: round; stroke-dasharray: 402.12; stroke-dashoffset: 402.12; transition: stroke-dashoffset 1s linear, stroke 0.3s ease; filter: drop-shadow(0 0 4px rgba(255,255,255,0.35)); }
+.progress-ring-svg { transform: rotate(-90deg); width: 200px; height: 200px; }
+.progress-ring-circle-bg { fill: none; stroke: rgba(255,255,255,0.1); stroke-width: 3; }
+.progress-ring-circle { fill: none; stroke: #fff; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 565.49; stroke-dashoffset: 565.49; transition: stroke-dashoffset 1s linear, stroke 0.3s ease; filter: drop-shadow(0 0 6px rgba(255,255,255,0.4)); }
 
 body.timer-active .progress-ring-circle { stroke: #4ade80; }
 body.break-active .progress-ring-circle { stroke: #fbbf24; }
@@ -147,33 +151,36 @@ body.timer-active .progress-timer:after, body.break-active .progress-timer:after
 
 /* Controls */
 .controls {
-    padding: 0 24px 20px;
+    padding: 0 24px 24px;
     display: flex;
-    gap: 12px;
+    gap: 16px;
     justify-content: center;
 }
 
 .btn {
     border: none;
-    border-radius: 12px;
-    padding: 12px 24px;
-    font-size: 14px;
-    font-weight: 600;
+    border-radius: 16px;
+    padding: 14px 28px;
+    font-size: 13px;
+    font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .btn-primary {
     background: #fff;
-    color: #667eea;
+    color: #6B46C1;
     flex: 1;
+    font-weight: 600;
 }
 
 .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(255, 255, 255, 0.4);
+    background: #f8fafc;
 }
 
 .btn-secondary {
@@ -198,11 +205,25 @@ body.timer-active .progress-timer:after, body.break-active .progress-timer:after
     color: white;
 }
 
+/* App Title */
+.app-title {
+    text-align: center;
+    padding: 20px 24px 12px;
+}
+
+.app-title h2 {
+    color: white;
+    font-size: 24px;
+    font-weight: 400;
+    margin: 0;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
 /* Stats */
 .stats {
     display: flex;
     justify-content: space-around;
-    padding: 20px 24px;
+    padding: 16px 24px 20px;
     background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
 }
@@ -410,6 +431,22 @@ body.timer-active .progress-timer:after, body.break-active .progress-timer:after
 
 .break-active {
     background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+}
+
+/* Add decorative sparkle element */
+.timer-section::after {
+    content: '✨';
+    position: absolute;
+    bottom: 40px;
+    right: 40px;
+    font-size: 24px;
+    opacity: 0.6;
+    animation: sparkle 4s ease-in-out infinite;
+}
+
+@keyframes sparkle {
+    0%, 100% { opacity: 0.3; transform: scale(1) rotate(0deg); }
+    50% { opacity: 0.8; transform: scale(1.2) rotate(180deg); }
 }
 
 /* Debug Panel */
