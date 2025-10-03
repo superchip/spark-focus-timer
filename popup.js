@@ -160,6 +160,9 @@ class SparkTimer {
                 this.totalTime = result.timerState.totalTime;
                 this.breakContentOpened = result.timerState.breakContentOpened || false;
                 this.debug('Timer state restored from background completion', 'info');
+                this.updateDisplay();
+                this.updateControls();
+                this.updateBreakPreview();
             } else {
                 // Handle completion now (background didn't handle it yet)
                 this.handleSessionComplete();
@@ -511,8 +514,9 @@ class SparkTimer {
         this.isRunning = true;
         this.startTimer();
         this.updateControls();
+        this.updateBreakPreview();
         this.saveTimerState();
-        
+
         // Start background timer to ensure notifications work even when popup is closed
         chrome.runtime.sendMessage({
             action: 'startBackgroundTimer',
@@ -529,9 +533,10 @@ class SparkTimer {
         this.isRunning = false;
         clearInterval(this.interval);
         this.updateControls();
+        this.updateBreakPreview();
         this.clearTimerState();
         this.debug('Timer paused', 'info');
-        
+
         // Stop background timer when paused
         chrome.runtime.sendMessage({
             action: 'stopBackgroundTimer'
@@ -542,7 +547,7 @@ class SparkTimer {
         this.isRunning = false;
         this.isPaused = false;
         clearInterval(this.interval);
-        
+
         if (this.currentSession === 'focus') {
             this.timeLeft = this.settings.focusDuration * 60;
         } else if (this.currentSession === 'shortBreak') {
@@ -550,14 +555,15 @@ class SparkTimer {
         } else {
             this.timeLeft = this.settings.longBreak * 60;
         }
-        
+
         this.totalTime = this.timeLeft;
         this.breakContentOpened = false; // Reset break content flag on reset
         this.updateDisplay();
         this.updateControls();
+        this.updateBreakPreview();
         this.clearTimerState();
         this.debug(`Timer reset for ${this.currentSession} session`, 'info');
-        
+
         // Stop background timer when reset
         chrome.runtime.sendMessage({
             action: 'stopBackgroundTimer'
@@ -805,34 +811,19 @@ class SparkTimer {
         const preview = document.getElementById('breakPreview');
         const contentType = document.getElementById('breakContentType');
         const previewHeader = document.getElementById('breakPreviewHeader');
-        
+
+        // Only show preview during focus session when not running
         if (this.currentSession === 'focus' && !this.isRunning) {
             const enabledTypes = [];
             if (this.settings.enableFacts) enabledTypes.push('Interesting Fact');
             if (this.settings.enableQuotes) enabledTypes.push('Inspirational Quote');
             if (this.settings.enableWebsites) enabledTypes.push('Cool Website');
-            
-            
+
+
             if (enabledTypes.length > 0) {
                 const randomType = enabledTypes[Math.floor(Math.random() * enabledTypes.length)];
                 contentType.textContent = randomType;
                 previewHeader.textContent = 'Your next break will show:';
-                preview.style.display = 'block';
-            } else {
-                preview.style.display = 'none';
-            }
-        } else if ((this.currentSession === 'shortBreak' || this.currentSession === 'longBreak') && !this.isRunning) {
-            // Show that content will appear when break starts
-            const enabledTypes = [];
-            if (this.settings.enableFacts) enabledTypes.push('Interesting Fact');
-            if (this.settings.enableQuotes) enabledTypes.push('Inspirational Quote');
-            if (this.settings.enableWebsites) enabledTypes.push('Cool Website');
-            
-            
-            if (enabledTypes.length > 0) {
-                const randomType = enabledTypes[Math.floor(Math.random() * enabledTypes.length)];
-                contentType.textContent = randomType;
-                previewHeader.textContent = 'Start your break to see:';
                 preview.style.display = 'block';
             } else {
                 preview.style.display = 'none';
