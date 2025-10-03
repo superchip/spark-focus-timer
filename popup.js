@@ -52,7 +52,6 @@ class SparkTimer {
         this.setupEventListeners();
         this.setupMessageListener();
         this.updateDisplay();
-        this.updateBreakPreview();
         this.setupSettingsPanel();
         this.updateDebugVisibility();
         this.debug('Spark Timer initialized', 'info');
@@ -101,7 +100,6 @@ class SparkTimer {
                 this.debug(`Restored timer state for ${this.currentSession} session (not running)`, 'info');
                 this.updateDisplay();
                 this.updateControls();
-                this.updateBreakPreview();
             }
         } else {
             this.debug('No timer state found, using defaults', 'info');
@@ -110,7 +108,6 @@ class SparkTimer {
             this.totalTime = this.timeLeft;
             this.updateDisplay();
             this.updateControls();
-            this.updateBreakPreview();
         }
     }
 
@@ -162,7 +159,6 @@ class SparkTimer {
                 this.debug('Timer state restored from background completion', 'info');
                 this.updateDisplay();
                 this.updateControls();
-                this.updateBreakPreview();
             } else {
                 // Handle completion now (background didn't handle it yet)
                 this.handleSessionComplete();
@@ -446,7 +442,6 @@ class SparkTimer {
             this.updateControls();
 
             // Update UI elements
-            this.updateBreakPreview();
             this.updateDebugVisibility();
 
             // Show success feedback
@@ -514,7 +509,6 @@ class SparkTimer {
         this.isRunning = true;
         this.startTimer();
         this.updateControls();
-        this.updateBreakPreview();
         this.saveTimerState();
 
         // Start background timer to ensure notifications work even when popup is closed
@@ -533,7 +527,6 @@ class SparkTimer {
         this.isRunning = false;
         clearInterval(this.interval);
         this.updateControls();
-        this.updateBreakPreview();
         this.clearTimerState();
         this.debug('Timer paused', 'info');
 
@@ -560,7 +553,6 @@ class SparkTimer {
         this.breakContentOpened = false; // Reset break content flag on reset
         this.updateDisplay();
         this.updateControls();
-        this.updateBreakPreview();
         this.clearTimerState();
         this.debug(`Timer reset for ${this.currentSession} session`, 'info');
 
@@ -636,7 +628,6 @@ class SparkTimer {
         this.totalTime = this.timeLeft;
         this.updateDisplay();
         this.updateControls();
-        this.updateBreakPreview();
     // Persist the new (non-running) timer state so background notification actions
     // know which upcoming session to start (fixes Start Break showing focus issue)
     await this.saveIdleTimerState();
@@ -805,32 +796,6 @@ class SparkTimer {
         // Automatically start the focus session (common expectation when skipping)
         this.startSession();
         this.debug('Focus session started after skipping break', 'info');
-    }
-
-    updateBreakPreview() {
-        const preview = document.getElementById('breakPreview');
-        const contentType = document.getElementById('breakContentType');
-        const previewHeader = document.getElementById('breakPreviewHeader');
-
-        // Only show preview during focus session when not running
-        if (this.currentSession === 'focus' && !this.isRunning) {
-            const enabledTypes = [];
-            if (this.settings.enableFacts) enabledTypes.push('Interesting Fact');
-            if (this.settings.enableQuotes) enabledTypes.push('Inspirational Quote');
-            if (this.settings.enableWebsites) enabledTypes.push('Cool Website');
-
-
-            if (enabledTypes.length > 0) {
-                const randomType = enabledTypes[Math.floor(Math.random() * enabledTypes.length)];
-                contentType.textContent = randomType;
-                previewHeader.textContent = 'Your next break will show:';
-                preview.style.display = 'block';
-            } else {
-                preview.style.display = 'none';
-            }
-        } else {
-            preview.style.display = 'none';
-        }
     }
 
     async updateStats() {
