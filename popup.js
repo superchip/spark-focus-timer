@@ -183,6 +183,12 @@ class SparkTimer {
         // Stats drawer toggle
         document.getElementById('statsHandle').addEventListener('click', () => this.toggleStats());
 
+        // GitHub link in settings footer
+        document.getElementById('githubLink').addEventListener('click', (e) => {
+            e.preventDefault();
+            chrome.tabs.create({ url: 'https://github.com/superchip/spark-focus-timer' });
+        });
+
         // Settings and debug controls
         document.getElementById('settingsBtn').addEventListener('click', () => this.showSettings());
         document.getElementById('closeSettings').addEventListener('click', () => this.hideSettings());

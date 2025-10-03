@@ -78,7 +78,8 @@ body.long-break {
 }
 
 .settings-btn,
-.debug-btn {
+.debug-btn,
+.github-btn {
     background: rgba(255, 255, 255, 0.15);
     backdrop-filter: blur(20px);
     border: none;
@@ -88,16 +89,32 @@ body.long-break {
     font-size: 18px;
     transition: all 300ms ease;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.github-btn {
+    color: white;
+}
+
+.github-btn svg {
+    transition: transform 300ms ease;
 }
 
 .settings-btn:hover,
-.debug-btn:hover {
+.debug-btn:hover,
+.github-btn:hover {
     background: rgba(255, 255, 255, 0.25);
     transform: scale(1.05);
 }
 
 .settings-btn:hover {
     transform: rotate(90deg);
+}
+
+.github-btn:hover svg {
+    transform: scale(1.1);
 }
 
 /* Session Badge */
@@ -706,6 +723,46 @@ body.long-break {
     color: white;
     font-size: 12px;
     font-weight: bold;
+}
+
+/* Settings Footer */
+.settings-footer {
+    padding: 16px 24px;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #f9fafb;
+    border-radius: 0 0 32px 32px;
+}
+
+.footer-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.footer-badge svg {
+    color: #8b5cf6;
+}
+
+.footer-link {
+    color: #8b5cf6;
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 300ms ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.footer-link:hover {
+    color: #7c3aed;
+    transform: translateX(2px);
 }
 
 /* Debug Panel */
