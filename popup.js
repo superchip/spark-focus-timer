@@ -393,6 +393,19 @@ class SparkTimer {
             // Save to storage
             this.saveSettings();
 
+            // If timer is not running, update the time display with new durations
+            if (!this.isRunning && !this.isPaused) {
+                if (this.currentSession === 'focus') {
+                    this.timeLeft = this.settings.focusDuration * 60;
+                } else if (this.currentSession === 'shortBreak') {
+                    this.timeLeft = this.settings.shortBreak * 60;
+                } else if (this.currentSession === 'longBreak') {
+                    this.timeLeft = this.settings.longBreak * 60;
+                }
+                this.totalTime = this.timeLeft;
+                this.updateDisplay();
+            }
+
             // Update UI elements
             this.updateBreakPreview();
             this.updateDebugVisibility();
