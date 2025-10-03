@@ -531,10 +531,12 @@ body.long-break {
     border-radius: 32px;
     width: 90%;
     max-width: 360px;
-    max-height: 520px;
-    overflow-y: auto;
+    max-height: 560px;
+    display: flex;
+    flex-direction: column;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     animation: slideUp 300ms ease;
+    overflow: hidden;
 }
 
 @keyframes slideUp {
@@ -554,6 +556,7 @@ body.long-break {
     align-items: center;
     padding: 20px 24px;
     border-bottom: 1px solid #e5e7eb;
+    flex-shrink: 0;
 }
 
 .settings-header h3 {
@@ -591,6 +594,26 @@ body.long-break {
 
 .settings-content {
     padding: 20px 24px 24px;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.settings-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.settings-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.settings-content::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
+}
+
+.settings-content::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
 }
 
 .setting-group {
@@ -734,6 +757,7 @@ body.long-break {
     justify-content: space-between;
     background: #f9fafb;
     border-radius: 0 0 32px 32px;
+    flex-shrink: 0;
 }
 
 .footer-badge {
