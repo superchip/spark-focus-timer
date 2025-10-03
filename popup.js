@@ -398,13 +398,13 @@ class SparkTimer {
             this.updateDebugVisibility();
 
             // Show success feedback
-            saveBtn.textContent = '✓ Saved!';
+            saveBtn.textContent = '✓ Saved';
             saveBtn.classList.add('saved');
 
             setTimeout(() => {
-                saveBtn.textContent = 'Save Changes';
+                saveBtn.textContent = 'Save';
                 saveBtn.classList.remove('saved');
-            }, 2000);
+            }, 1500);
 
             this.debug('Settings saved successfully', 'info');
         });
