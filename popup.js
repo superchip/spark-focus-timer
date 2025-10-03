@@ -181,12 +181,6 @@ class SparkTimer {
         timerCircle.addEventListener('touchend', (e) => this.handlePressEnd(e));
         timerCircle.addEventListener('touchcancel', (e) => this.handlePressCancel(e));
 
-        // Skip break button (hidden control)
-        const skipBreakBtn = document.getElementById('skipBreakBtn');
-        if (skipBreakBtn) {
-            skipBreakBtn.addEventListener('click', () => this.skipBreakToFocus());
-        }
-
         // Settings and debug controls
         document.getElementById('settingsBtn').addEventListener('click', () => this.showSettings());
         document.getElementById('closeSettings').addEventListener('click', () => this.hideSettings());
@@ -215,12 +209,16 @@ class SparkTimer {
         const timerCircle = document.getElementById('timerCircle');
         const timerStatus = document.getElementById('timerStatus');
 
+        // Determine action based on current session
+        const isBreakSession = this.currentSession === 'shortBreak' || this.currentSession === 'longBreak';
+        const actionText = isBreakSession ? '⏭ Skipping...' : '↻ Resetting...';
+
         // Start long-press timer
         this.longPressTimer = setTimeout(() => {
             this.isLongPressing = true;
             timerCircle.classList.add('long-pressing');
-            timerStatus.textContent = '↻ Resetting...';
-            this.debug('Long press detected - preparing to reset', 'info');
+            timerStatus.textContent = actionText;
+            this.debug(`Long press detected - preparing to ${isBreakSession ? 'skip' : 'reset'}`, 'info');
         }, this.longPressThreshold);
     }
 
@@ -237,12 +235,24 @@ class SparkTimer {
         }
 
         if (this.isLongPressing) {
-            // Long press completed - reset timer
+            // Long press completed
             timerCircle.classList.remove('long-pressing');
             timerStatus.textContent = '';
-            this.resetSession();
+
+            // Check if we're in a break session
+            const isBreakSession = this.currentSession === 'shortBreak' || this.currentSession === 'longBreak';
+
+            if (isBreakSession) {
+                // Skip break and go to focus
+                this.skipBreakToFocus();
+                this.debug('Break skipped via long press', 'info');
+            } else {
+                // Reset timer
+                this.resetSession();
+                this.debug('Timer reset via long press', 'info');
+            }
+
             this.isLongPressing = false;
-            this.debug('Timer reset via long press', 'info');
         } else {
             // Short tap - toggle timer
             timerCircle.classList.remove('long-pressing');
@@ -746,7 +756,7 @@ class SparkTimer {
 
     updateControls() {
         const hintText = document.getElementById('hintText');
-        const skipBreakBtn = document.getElementById('skipBreakBtn');
+        const hintSubtext = document.getElementById('hintSubtext');
 
         // Update hint text based on timer state
         if (this.isRunning) {
@@ -757,14 +767,10 @@ class SparkTimer {
             hintText.textContent = 'Tap to Start';
         }
 
-        // Skip Break button visibility
-        if (skipBreakBtn) {
-            // Show only during a running break session
-            if (this.isRunning && (this.currentSession === 'shortBreak' || this.currentSession === 'longBreak')) {
-                skipBreakBtn.style.display = 'inline-block';
-            } else {
-                skipBreakBtn.style.display = 'none';
-            }
+        // Update subtext based on session type
+        const isBreakSession = this.currentSession === 'shortBreak' || this.currentSession === 'longBreak';
+        if (hintSubtext) {
+            hintSubtext.textContent = isBreakSession ? 'Hold to skip' : 'Hold to reset';
         }
     }
 
