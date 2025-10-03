@@ -180,6 +180,9 @@ class SparkTimer {
         timerCircle.addEventListener('touchend', (e) => this.handlePressEnd(e));
         timerCircle.addEventListener('touchcancel', (e) => this.handlePressCancel(e));
 
+        // Stats drawer toggle
+        document.getElementById('statsHandle').addEventListener('click', () => this.toggleStats());
+
         // Settings and debug controls
         document.getElementById('settingsBtn').addEventListener('click', () => this.showSettings());
         document.getElementById('closeSettings').addEventListener('click', () => this.hideSettings());
@@ -463,6 +466,12 @@ class SparkTimer {
 
     hideSettings() {
         document.getElementById('settingsPanel').style.display = 'none';
+    }
+
+    toggleStats() {
+        const statsDrawer = document.getElementById('statsDrawer');
+        statsDrawer.classList.toggle('open');
+        this.debug('Stats drawer toggled', 'info');
     }
 
     startSession() {

@@ -49,19 +49,33 @@
         </div>
 
 
-        <!-- Stats -->
-        <div class="stats">
-            <div class="stat-card">
-                <div class="stat-number" id="completedSessions">0</div>
-                <div class="stat-label">Sessions</div>
+        <!-- Stats Drawer (Bottom) -->
+        <div class="stats-drawer" id="statsDrawer">
+            <div class="stats-drawer-handle" id="statsHandle">
+                <div class="handle-bar"></div>
+                <div class="handle-hint">
+                    <span class="handle-icon">📊</span>
+                    <span class="handle-text">Your Progress</span>
+                </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-number" id="currentStreak">0</div>
-                <div class="stat-label">Streak</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="totalFocusTime">0h</div>
-                <div class="stat-label">Focus Time</div>
+            <div class="stats-drawer-content">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">🎯</div>
+                        <div class="stat-number" id="completedSessions">0</div>
+                        <div class="stat-label">Sessions</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🔥</div>
+                        <div class="stat-number" id="currentStreak">0</div>
+                        <div class="stat-label">Day Streak</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⏱️</div>
+                        <div class="stat-number" id="totalFocusTime">0h</div>
+                        <div class="stat-label">Focus Time</div>
+                    </div>
+                </div>
             </div>
         </div>
 
