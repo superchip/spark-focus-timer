@@ -393,18 +393,44 @@ class SparkTimer {
             // Save to storage
             this.saveSettings();
 
-            // If timer is not running, update the time display with new durations
-            if (!this.isRunning && !this.isPaused) {
-                if (this.currentSession === 'focus') {
-                    this.timeLeft = this.settings.focusDuration * 60;
-                } else if (this.currentSession === 'shortBreak') {
-                    this.timeLeft = this.settings.shortBreak * 60;
-                } else if (this.currentSession === 'longBreak') {
-                    this.timeLeft = this.settings.longBreak * 60;
-                }
-                this.totalTime = this.timeLeft;
-                this.updateDisplay();
+            // Apply new durations to timer based on current session
+            const wasRunning = this.isRunning;
+
+            // Stop timer if running
+            if (this.isRunning) {
+                clearInterval(this.interval);
+                this.isRunning = false;
+                this.isPaused = false;
+                chrome.runtime.sendMessage({ action: 'stopBackgroundTimer' });
             }
+
+            // Update timer with new duration
+            if (this.currentSession === 'focus') {
+                this.timeLeft = this.settings.focusDuration * 60;
+            } else if (this.currentSession === 'shortBreak') {
+                this.timeLeft = this.settings.shortBreak * 60;
+            } else if (this.currentSession === 'longBreak') {
+                this.timeLeft = this.settings.longBreak * 60;
+            }
+            this.totalTime = this.timeLeft;
+
+            // Restart timer if it was running
+            if (wasRunning) {
+                this.sessionStartTime = Date.now();
+                this.isRunning = true;
+                this.startTimer();
+                chrome.runtime.sendMessage({
+                    action: 'startBackgroundTimer',
+                    duration: this.timeLeft / 60,
+                    sessionInfo: {
+                        type: this.currentSession,
+                        sessionCount: this.sessionCount
+                    }
+                });
+            }
+
+            this.updateDisplay();
+            this.updateControls();
 
             // Update UI elements
             this.updateBreakPreview();
