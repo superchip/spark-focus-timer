@@ -573,7 +573,7 @@ async function checkTimerState() {
             const now = Date.now();
             const startTime = result.timerState.sessionStartTime || result.timerState.startTime;
             const elapsed = Math.floor((now - startTime) / 1000);
-            const timeLeft = result.timerState.timeLeft - elapsed;
+            const timeLeft = Math.max(0, result.timerState.totalTime - elapsed);
             
             if (timeLeft <= 0) {
                 // Timer should have completed
