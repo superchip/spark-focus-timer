@@ -364,39 +364,49 @@ class SparkTimer {
         document.getElementById('shortBreakValue').textContent = this.settings.shortBreak;
         document.getElementById('longBreakValue').textContent = this.settings.longBreak;
 
-        // Add event listeners
+        // Add event listeners for live display updates (no auto-save)
         elements.focusDuration.addEventListener('input', (e) => {
-            this.settings.focusDuration = parseInt(e.target.value);
             document.getElementById('focusValue').textContent = e.target.value;
-            this.saveSettings();
         });
 
         elements.shortBreak.addEventListener('input', (e) => {
-            this.settings.shortBreak = parseInt(e.target.value);
             document.getElementById('shortBreakValue').textContent = e.target.value;
-            this.saveSettings();
         });
 
         elements.longBreak.addEventListener('input', (e) => {
-            this.settings.longBreak = parseInt(e.target.value);
             document.getElementById('longBreakValue').textContent = e.target.value;
-            this.saveSettings();
         });
 
-        // Checkbox listeners
-        Object.keys(elements).forEach(key => {
-            if (elements[key].type === 'checkbox') {
-                elements[key].addEventListener('change', (e) => {
-                    this.settings[key] = e.target.checked;
-                    this.saveSettings();
-                    this.updateBreakPreview();
-                    
-                    // Handle debug mode toggle
-                    if (key === 'enableDebugMode') {
-                        this.updateDebugVisibility();
-                    }
-                });
-            }
+        // Save Settings button listener
+        const saveBtn = document.getElementById('saveSettingsBtn');
+        saveBtn.addEventListener('click', () => {
+            // Update all settings from form values
+            this.settings.focusDuration = parseInt(elements.focusDuration.value);
+            this.settings.shortBreak = parseInt(elements.shortBreak.value);
+            this.settings.longBreak = parseInt(elements.longBreak.value);
+            this.settings.enableNotifications = elements.enableNotifications.checked;
+            this.settings.enableFacts = elements.enableFacts.checked;
+            this.settings.enableQuotes = elements.enableQuotes.checked;
+            this.settings.enableWebsites = elements.enableWebsites.checked;
+            this.settings.enableDebugMode = elements.enableDebugMode.checked;
+
+            // Save to storage
+            this.saveSettings();
+
+            // Update UI elements
+            this.updateBreakPreview();
+            this.updateDebugVisibility();
+
+            // Show success feedback
+            saveBtn.textContent = '✓ Saved!';
+            saveBtn.classList.add('saved');
+
+            setTimeout(() => {
+                saveBtn.textContent = 'Save Changes';
+                saveBtn.classList.remove('saved');
+            }, 2000);
+
+            this.debug('Settings saved successfully', 'info');
         });
     }
 

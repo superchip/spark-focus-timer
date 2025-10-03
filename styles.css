@@ -482,7 +482,39 @@ body.long-break {
 }
 
 .setting-group {
-    margin-bottom: 24px;
+    margin-bottom: 20px;
+}
+
+.btn-save-settings {
+    width: 100%;
+    padding: 14px 24px;
+    background: linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%);
+    color: white;
+    border: none;
+    border-radius: 16px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 300ms ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+    margin-top: 8px;
+}
+
+.btn-save-settings:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+    background: linear-gradient(135deg, #9333ea 0%, #e879f9 100%);
+}
+
+.btn-save-settings:active {
+    transform: translateY(0);
+}
+
+.btn-save-settings.saved {
+    background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+    box-shadow: 0 4px 16px rgba(52, 211, 153, 0.3);
 }
 
 .setting-group label {
