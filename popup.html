@@ -20,42 +20,52 @@
             </div>
         </header>
 
+        <!-- Session Badge -->
+        <div class="session-badge" id="sessionBadge">
+            <span class="session-icon">⚡</span>
+            <span class="session-label">Focus Time</span>
+        </div>
+
         <!-- Timer Display -->
         <div class="timer-section">
             <div class="timer-display">
-                <div class="progress-timer">
-                    <svg class="progress-ring-svg" width="180" height="180">
-                        <circle class="progress-ring-circle-bg" cx="90" cy="90" r="80" />
-                        <circle class="progress-ring-circle" cx="90" cy="90" r="80" id="progressCircle" />
+                <div class="progress-timer" id="timerCircle">
+                    <svg class="progress-ring-svg" width="256" height="256">
+                        <circle class="progress-ring-circle-bg" cx="128" cy="128" r="115" />
+                        <circle class="progress-ring-circle" cx="128" cy="128" r="115" id="progressCircle" />
+                        <circle class="long-press-ring" cx="128" cy="128" r="115" id="longPressRing" />
                     </svg>
-                    <div class="time-left" id="timeLeft">25:00</div>
+                    <div class="timer-content">
+                        <div class="time-left" id="timeLeft">25:00</div>
+                        <div class="timer-status" id="timerStatus"></div>
+                    </div>
+                    <div class="timer-overlay" id="timerOverlay"></div>
                 </div>
-                <div class="session-type" id="sessionType">Focus Time</div>
+                <div class="timer-hints">
+                    <div class="hint-text" id="hintText">Tap to Start</div>
+                    <div class="hint-subtext">Hold to reset</div>
+                </div>
             </div>
         </div>
 
-        <!-- Controls -->
-        <div class="controls">
-            <button class="btn btn-primary" id="startBtn">Start Focus</button>
-            <button class="btn btn-secondary" id="pauseBtn" style="display: none;">Pause</button>
-            <button class="btn btn-tertiary" id="resetBtn">Reset</button>
+        <!-- Hidden Controls for Skip Break Feature -->
+        <div class="hidden-controls">
             <button class="btn btn-tertiary" id="skipBreakBtn" style="display: none;">Skip Break ➜ Focus</button>
-        </div>
-
-        <!-- App Title -->
-        <div class="app-title">
-            <h2>Spark Focus Timer</h2>
         </div>
 
         <!-- Stats -->
         <div class="stats">
-            <div class="stat-item">
+            <div class="stat-card">
+                <div class="stat-number" id="completedSessions">0</div>
+                <div class="stat-label">Sessions</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="currentStreak">0</div>
+                <div class="stat-label">Streak</div>
+            </div>
+            <div class="stat-card">
                 <div class="stat-number" id="totalFocusTime">0h</div>
                 <div class="stat-label">Focus Time</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-number" id="currentStreak">0</div>
-                <div class="stat-label">Focus Streak</div>
             </div>
         </div>
 
@@ -68,61 +78,65 @@
             <div class="break-content-type" id="breakContentType">Interesting Website</div>
         </div>
 
-        <!-- Settings Panel -->
-        <div class="settings-panel" id="settingsPanel" style="display: none;">
-            <div class="settings-header">
-                <h3>Settings</h3>
-                <button class="close-btn" id="closeSettings">×</button>
-            </div>
-            
-            <div class="setting-group">
-                <label>Focus Duration (minutes)</label>
-                <input type="range" id="focusDuration" min="15" max="60" value="25" step="5">
-                <span id="focusValue">25</span>
-            </div>
-            
-            <div class="setting-group">
-                <label>Short Break (minutes)</label>
-                <input type="range" id="shortBreak" min="3" max="15" value="5" step="1">
-                <span id="shortBreakValue">5</span>
-            </div>
-            
-            <div class="setting-group">
-                <label>Long Break (minutes)</label>
-                <input type="range" id="longBreak" min="15" max="45" value="30" step="5">
-                <span id="longBreakValue">30</span>
-            </div>
-            
-            <div class="setting-group">
-                <label>Break Content Types</label>
-                <div class="checkbox-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="enableFacts" checked>
-                        <span>Interesting Facts</span>
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="enableQuotes" checked>
-                        <span>Inspirational Quotes</span>
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="enableWebsites" checked>
-                        <span>Cool Websites</span>
-                    </label>
+        <!-- Settings Modal -->
+        <div class="settings-modal-overlay" id="settingsPanel" style="display: none;">
+            <div class="settings-modal">
+                <div class="settings-header">
+                    <h3>Settings</h3>
+                    <button class="close-btn" id="closeSettings">×</button>
                 </div>
-            </div>
-            
-            <div class="setting-group">
-                <label class="checkbox-label">
-                    <input type="checkbox" id="enableNotifications" checked>
-                    <span>Enable Notifications</span>
-                </label>
-            </div>
-            
-            <div class="setting-group">
-                <label class="checkbox-label">
-                    <input type="checkbox" id="enableDebugMode">
-                    <span>Debug Mode</span>
-                </label>
+
+                <div class="settings-content">
+                    <div class="setting-group">
+                        <label>Focus Duration</label>
+                        <input type="range" id="focusDuration" min="15" max="60" value="25" step="5">
+                        <div class="setting-value"><span id="focusValue">25</span> minutes</div>
+                    </div>
+
+                    <div class="setting-group">
+                        <label>Short Break</label>
+                        <input type="range" id="shortBreak" min="3" max="15" value="5" step="1">
+                        <div class="setting-value"><span id="shortBreakValue">5</span> minutes</div>
+                    </div>
+
+                    <div class="setting-group">
+                        <label>Long Break</label>
+                        <input type="range" id="longBreak" min="15" max="45" value="30" step="5">
+                        <div class="setting-value"><span id="longBreakValue">30</span> minutes</div>
+                    </div>
+
+                    <div class="setting-group">
+                        <label>Break Content Types</label>
+                        <div class="checkbox-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="enableFacts" checked>
+                                <span>Interesting Facts</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="enableQuotes" checked>
+                                <span>Inspirational Quotes</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="enableWebsites" checked>
+                                <span>Cool Websites</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="setting-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="enableNotifications" checked>
+                            <span>Enable Notifications</span>
+                        </label>
+                    </div>
+
+                    <div class="setting-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="enableDebugMode">
+                            <span>Debug Mode</span>
+                        </label>
+                    </div>
+                </div>
             </div>
         </div>
         

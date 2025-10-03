@@ -9,7 +9,12 @@ class SparkTimer {
         this.interval = null;
         this.breakContentOpened = false; // Track if break content has been opened for current session
         this.sessionStartTime = null; // Track when the current session actually started
-        
+
+        // Long-press state
+        this.isLongPressing = false;
+        this.longPressTimer = null;
+        this.longPressThreshold = 800; // 800ms for long press
+
         // Settings
         this.settings = {
             focusDuration: 25,
@@ -32,7 +37,7 @@ class SparkTimer {
             'Interesting Fact',
             'Inspirational Quote',
             'Cool Website',
-            
+
             'Life Advice',
             'Random Discovery'
         ];
@@ -163,20 +168,33 @@ class SparkTimer {
     }
 
     setupEventListeners() {
-        document.getElementById('startBtn').addEventListener('click', () => this.startSession());
-        document.getElementById('pauseBtn').addEventListener('click', () => this.pauseSession());
-        document.getElementById('resetBtn').addEventListener('click', () => this.resetSession());
+        // Timer circle interactions (tap to start/pause, long-press to reset)
+        const timerCircle = document.getElementById('timerCircle');
+
+        // Mouse events
+        timerCircle.addEventListener('mousedown', (e) => this.handlePressStart(e));
+        timerCircle.addEventListener('mouseup', (e) => this.handlePressEnd(e));
+        timerCircle.addEventListener('mouseleave', (e) => this.handlePressCancel(e));
+
+        // Touch events
+        timerCircle.addEventListener('touchstart', (e) => this.handlePressStart(e));
+        timerCircle.addEventListener('touchend', (e) => this.handlePressEnd(e));
+        timerCircle.addEventListener('touchcancel', (e) => this.handlePressCancel(e));
+
+        // Skip break button (hidden control)
         const skipBreakBtn = document.getElementById('skipBreakBtn');
         if (skipBreakBtn) {
             skipBreakBtn.addEventListener('click', () => this.skipBreakToFocus());
         }
+
+        // Settings and debug controls
         document.getElementById('settingsBtn').addEventListener('click', () => this.showSettings());
         document.getElementById('closeSettings').addEventListener('click', () => this.hideSettings());
         document.getElementById('debugBtn').addEventListener('click', () => this.showDebugConsole());
         document.getElementById('closeDebug').addEventListener('click', () => this.hideDebugConsole());
         document.getElementById('clearLogs').addEventListener('click', () => this.clearDebugLogs());
         document.getElementById('exportLogs').addEventListener('click', () => this.exportDebugLogs());
-        
+
         // Debug testing controls
         document.getElementById('applySpeed').addEventListener('click', () => this.applySpeedMultiplier());
         document.getElementById('testNotification').addEventListener('click', () => this.testNotification());
@@ -188,6 +206,75 @@ class SparkTimer {
         document.getElementById('resetStats').addEventListener('click', () => this.resetStats());
         document.getElementById('inspectStorage').addEventListener('click', () => this.inspectStorage());
         document.getElementById('clearAllStorage').addEventListener('click', () => this.clearAllStorage());
+    }
+
+    handlePressStart(e) {
+        e.preventDefault();
+        this.isLongPressing = false;
+
+        const timerCircle = document.getElementById('timerCircle');
+        const timerStatus = document.getElementById('timerStatus');
+
+        // Start long-press timer
+        this.longPressTimer = setTimeout(() => {
+            this.isLongPressing = true;
+            timerCircle.classList.add('long-pressing');
+            timerStatus.textContent = '↻ Resetting...';
+            this.debug('Long press detected - preparing to reset', 'info');
+        }, this.longPressThreshold);
+    }
+
+    handlePressEnd(e) {
+        e.preventDefault();
+
+        const timerCircle = document.getElementById('timerCircle');
+        const timerStatus = document.getElementById('timerStatus');
+
+        // Clear long-press timer
+        if (this.longPressTimer) {
+            clearTimeout(this.longPressTimer);
+            this.longPressTimer = null;
+        }
+
+        if (this.isLongPressing) {
+            // Long press completed - reset timer
+            timerCircle.classList.remove('long-pressing');
+            timerStatus.textContent = '';
+            this.resetSession();
+            this.isLongPressing = false;
+            this.debug('Timer reset via long press', 'info');
+        } else {
+            // Short tap - toggle timer
+            timerCircle.classList.remove('long-pressing');
+            timerStatus.textContent = '';
+            this.toggleTimer();
+        }
+    }
+
+    handlePressCancel(e) {
+        // Cancel long-press if mouse/touch leaves the circle
+        if (this.longPressTimer) {
+            clearTimeout(this.longPressTimer);
+            this.longPressTimer = null;
+        }
+
+        if (this.isLongPressing) {
+            const timerCircle = document.getElementById('timerCircle');
+            const timerStatus = document.getElementById('timerStatus');
+            timerCircle.classList.remove('long-pressing');
+            timerStatus.textContent = '';
+            this.isLongPressing = false;
+        }
+    }
+
+    toggleTimer() {
+        if (this.isRunning) {
+            // Timer is running - pause it
+            this.pauseSession();
+        } else {
+            // Timer is not running - start it
+            this.startSession();
+        }
     }
 
     setupMessageListener() {
@@ -564,60 +651,61 @@ class SparkTimer {
         const minutes = Math.floor(this.timeLeft / 60);
         const seconds = this.timeLeft % 60;
         const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-        
-        document.getElementById('timeLeft').textContent = timeString;
-        
-        const sessionLabels = {
-            focus: 'Focus Time',
-            shortBreak: 'Short Break',
-            longBreak: 'Long Break'
-        };
-        
-        document.getElementById('sessionType').textContent = sessionLabels[this.currentSession];
-        
-        // Update progress ring
-    const progress = this.totalTime > 0 ? (this.totalTime - this.timeLeft) / this.totalTime : 0;
-    const radius = 80; // updated SVG circle radius
-    const circumference = 2 * Math.PI * radius;
-    const offset = circumference - (progress * circumference);
-    const circleEl = document.getElementById('progressCircle');
-    if (circleEl) circleEl.style.strokeDashoffset = offset;
 
-        // Update body class
+        document.getElementById('timeLeft').textContent = timeString;
+
+        // Update session badge
+        const sessionBadge = document.getElementById('sessionBadge');
+        const sessionIcon = sessionBadge.querySelector('.session-icon');
+        const sessionLabel = sessionBadge.querySelector('.session-label');
+
+        const sessionData = {
+            focus: { label: 'Focus Time', icon: '⚡' },
+            shortBreak: { label: 'Short Break', icon: '☕' },
+            longBreak: { label: 'Long Break', icon: '🌙' }
+        };
+
+        const data = sessionData[this.currentSession];
+        sessionLabel.textContent = data.label;
+        sessionIcon.textContent = data.icon;
+
+        // Update progress ring
+        const progress = this.totalTime > 0 ? (this.totalTime - this.timeLeft) / this.totalTime : 0;
+        const radius = 115; // Updated SVG circle radius for 256px timer
+        const circumference = 2 * Math.PI * radius;
+        const offset = circumference - (progress * circumference);
+        const circleEl = document.getElementById('progressCircle');
+        if (circleEl) circleEl.style.strokeDashoffset = offset;
+
+        // Update body class for gradient backgrounds
         document.body.className = '';
-        if (this.currentSession === 'focus') {
-            if (this.isRunning) {
-                document.body.classList.add('timer-active');
-            }
+        if (this.currentSession === 'shortBreak') {
+            document.body.classList.add('short-break');
+        } else if (this.currentSession === 'longBreak') {
+            document.body.classList.add('long-break');
+        }
+        // Focus session uses default gradient (no class needed)
+
+        // Add stopped class to timer circle when not running
+        const timerCircle = document.getElementById('timerCircle');
+        if (!this.isRunning) {
+            timerCircle.classList.add('stopped');
         } else {
-            // For break sessions, show break styling whether running or ready to start
-            document.body.classList.add('break-active');
+            timerCircle.classList.remove('stopped');
         }
     }
 
     updateControls() {
-        const startBtn = document.getElementById('startBtn');
-        const pauseBtn = document.getElementById('pauseBtn');
-    const skipBreakBtn = document.getElementById('skipBreakBtn');
-        
+        const hintText = document.getElementById('hintText');
+        const skipBreakBtn = document.getElementById('skipBreakBtn');
+
+        // Update hint text based on timer state
         if (this.isRunning) {
-            startBtn.style.display = 'none';
-            pauseBtn.style.display = 'block';
-            pauseBtn.textContent = 'Pause';
+            hintText.textContent = 'Tap to Pause';
+        } else if (this.isPaused) {
+            hintText.textContent = 'Tap to Resume';
         } else {
-            startBtn.style.display = 'block';
-            pauseBtn.style.display = 'none';
-            
-            if (this.isPaused) {
-                startBtn.textContent = 'Resume';
-            } else {
-                const sessionLabels = {
-                    focus: 'Start Focus',
-                    shortBreak: 'Start Break',
-                    longBreak: 'Start Break'
-                };
-                startBtn.textContent = sessionLabels[this.currentSession];
-            }
+            hintText.textContent = 'Tap to Start';
         }
 
         // Skip Break button visibility
@@ -730,6 +818,19 @@ class SparkTimer {
     }
 
     updateStatsDisplay(stats) {
+        // Update completed sessions
+        const completedSessionsEl = document.getElementById('completedSessions');
+        if (completedSessionsEl) {
+            completedSessionsEl.textContent = stats.completedSessions || 0;
+        }
+
+        // Update streak
+        const currentStreakEl = document.getElementById('currentStreak');
+        if (currentStreakEl) {
+            currentStreakEl.textContent = stats.currentStreak || 0;
+        }
+
+        // Update total focus time
         const hours = Math.floor(stats.totalFocusTime / 60);
         const minutes = stats.totalFocusTime % 60;
         let timeText = '';
@@ -739,9 +840,10 @@ class SparkTimer {
         } else {
             timeText = `${minutes}m`;
         }
-        document.getElementById('totalFocusTime').textContent = timeText;
-
-        document.getElementById('currentStreak').textContent = stats.currentStreak;
+        const totalFocusTimeEl = document.getElementById('totalFocusTime');
+        if (totalFocusTimeEl) {
+            totalFocusTimeEl.textContent = timeText;
+        }
     }
 
     async saveTimerState() {
@@ -1020,14 +1122,18 @@ class SparkTimer {
 
     async resetStats() {
         this.debug('Resetting all statistics', 'info');
-        
+
         await chrome.storage.local.remove(['stats']);
-        
+
         // Reset display
-        document.getElementById('completedSessions').textContent = '0';
-        document.getElementById('totalFocusTime').textContent = '0m';
-        document.getElementById('currentStreak').textContent = '0';
-        
+        const completedSessionsEl = document.getElementById('completedSessions');
+        const totalFocusTimeEl = document.getElementById('totalFocusTime');
+        const currentStreakEl = document.getElementById('currentStreak');
+
+        if (completedSessionsEl) completedSessionsEl.textContent = '0';
+        if (totalFocusTimeEl) totalFocusTimeEl.textContent = '0m';
+        if (currentStreakEl) currentStreakEl.textContent = '0';
+
         this.debug('Statistics reset complete', 'info');
     }
 
