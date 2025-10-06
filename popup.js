@@ -343,9 +343,13 @@ class SparkTimer {
             this.sessionCount = result.timerState.sessionCount;
             this.timeLeft = result.timerState.timeLeft;
             this.totalTime = result.timerState.totalTime;
-            this.breakContentOpened = result.timerState.breakContentOpened || false;
             
-            this.debug(`Starting ${this.currentSession} session in popup from notification`, 'info');
+            // IMPORTANT: Reset breakContentOpened for break sessions started from notification
+            // This ensures break content opens even if previous state had it marked as opened
+            const isBreakSession = (this.currentSession === 'shortBreak' || this.currentSession === 'longBreak');
+            this.breakContentOpened = isBreakSession ? false : (result.timerState.breakContentOpened || false);
+            
+            this.debug(`Starting ${this.currentSession} session in popup from notification (breakContentOpened reset to ${this.breakContentOpened})`, 'info');
             
             // Start the session (this will trigger the normal flow)
             this.startSession();
@@ -1000,20 +1004,39 @@ class SparkTimer {
         const debugLogsEl = document.getElementById('debugLogs');
         if (!debugLogsEl) return;
 
-        debugLogsEl.innerHTML = this.debugLogs
-            .slice(-50) // Show only the last 50 logs
-            .map(log => {
-                const levelClass = `debug-${log.level}`;
-                return `
-                    <div class="debug-log-entry ${levelClass}">
-                        <span class="debug-timestamp">${new Date(log.timestamp).toLocaleTimeString()}</span>
-                        <span class="debug-level">[${log.level.toUpperCase()}]</span>
-                        <span class="debug-message">${log.message}</span>
-                        <span class="debug-context">Session: ${log.session}, Time: ${Math.floor(log.timeLeft / 60)}:${(log.timeLeft % 60).toString().padStart(2, '0')}</span>
-                    </div>
-                `;
-            })
-            .join('');
+        // Clear existing content safely
+        while (debugLogsEl.firstChild) {
+            debugLogsEl.removeChild(debugLogsEl.firstChild);
+        }
+
+        // Create log entries using DOM methods (safer than innerHTML)
+        this.debugLogs.slice(-50).forEach(log => {
+            const logEntry = document.createElement('div');
+            logEntry.className = `debug-log-entry debug-${log.level}`;
+
+            const timestamp = document.createElement('span');
+            timestamp.className = 'debug-timestamp';
+            timestamp.textContent = new Date(log.timestamp).toLocaleTimeString();
+
+            const level = document.createElement('span');
+            level.className = 'debug-level';
+            level.textContent = `[${log.level.toUpperCase()}]`;
+
+            const message = document.createElement('span');
+            message.className = 'debug-message';
+            message.textContent = log.message;
+
+            const context = document.createElement('span');
+            context.className = 'debug-context';
+            context.textContent = `Session: ${log.session}, Time: ${Math.floor(log.timeLeft / 60)}:${(log.timeLeft % 60).toString().padStart(2, '0')}`;
+
+            logEntry.appendChild(timestamp);
+            logEntry.appendChild(level);
+            logEntry.appendChild(message);
+            logEntry.appendChild(context);
+
+            debugLogsEl.appendChild(logEntry);
+        });
 
         // Auto-scroll to bottom
         debugLogsEl.scrollTop = debugLogsEl.scrollHeight;
@@ -1186,7 +1209,15 @@ class SparkTimer {
             };
             
             const storageDisplay = document.getElementById('storageDisplay');
-            storageDisplay.innerHTML = `<pre>${JSON.stringify(storageData, null, 2)}</pre>`;
+            // Use textContent instead of innerHTML for security
+            const pre = document.createElement('pre');
+            pre.textContent = JSON.stringify(storageData, null, 2);
+            
+            // Clear and append safely
+            while (storageDisplay.firstChild) {
+                storageDisplay.removeChild(storageDisplay.firstChild);
+            }
+            storageDisplay.appendChild(pre);
             
             this.debug('Storage inspection complete', 'info');
         } catch (error) {
