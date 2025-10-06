@@ -332,8 +332,16 @@ async function openBreakContent(type, url) {
             debugLog('Successfully opened tab with content', 'info');
             // Notify popup (if open) that content was opened
             chrome.runtime.sendMessage({ action: 'breakContentOpened', type, url: finalUrl }).catch(() => {});
-            // Attempt to surface extension popup
-            showExtensionPopupForBreak();
+            
+            // After opening break content tab, try to re-open popup after a delay
+            // This gives Chrome time to open the tab, then we can show the popup again
+            setTimeout(() => {
+                chrome.action.openPopup().then(() => {
+                    debugLog('Popup re-opened after break content tab', 'info');
+                }).catch((err) => {
+                    debugLog(`Could not re-open popup after break content: ${err.message}`, 'info');
+                });
+            }, 800); // 800ms delay to let Chrome settle
         } else {
             debugLog('No content URL generated', 'warn');
         }
@@ -774,29 +782,17 @@ async function openRandomWebsiteBackground() {
     try {
         await chrome.tabs.create({ url: randomSite });
         debugLog(`Opened random website: ${randomSite}`, 'info');
-        showExtensionPopupForBreak();
+        
+        // Try to re-open popup after opening website
+        setTimeout(() => {
+            chrome.action.openPopup().then(() => {
+                debugLog('Popup re-opened after website tab', 'info');
+            }).catch((err) => {
+                debugLog(`Could not re-open popup after website: ${err.message}`, 'info');
+            });
+        }, 800);
     } catch (e) {
         debugLog(`Failed to open random website: ${e.message}`, 'error');
-    }
-}
-
-// Cooldown tracker to avoid spamming popup open
-let lastPopupOpenTs = 0;
-function showExtensionPopupForBreak() {
-    const now = Date.now();
-    if (now - lastPopupOpenTs < 2000) { // 2s cooldown
-        debugLog('Popup open suppressed (cooldown)', 'info');
-        return;
-    }
-    lastPopupOpenTs = now;
-    try {
-        chrome.action.openPopup().then(() => {
-            debugLog('Extension popup opened after break content tab', 'info');
-        }).catch(err => {
-            debugLog(`Failed to open extension popup after break content: ${err.message}`, 'warn');
-        });
-    } catch (e) {
-        debugLog(`Exception opening popup after break content: ${e.message}`, 'error');
     }
 }
 
@@ -923,20 +919,48 @@ async function handleSessionStartFromNotification(sessionType, notificationId) {
             chrome.storage.local.remove([`notification_${notificationId}`]);
             
     } else {
-            // Popup is not open - start session in background, then open popup
+            // Popup is not open - we need to handle this carefully
             debugLog('Starting session fully in background (popup closed)', 'info');
-            await startNextSessionFromNotification(sessionType);
             
-            // Open the popup to show the running timer
-            chrome.action.openPopup().catch(() => {
-                debugLog('Could not open popup after starting session', 'warn');
-            });
+            if (sessionType === 'break') {
+                // For break sessions: Open popup first, then start session after a delay
+                // This ensures popup stays open to show the break timer
+                debugLog('Opening popup first for break session', 'info');
+                
+                try {
+                    await chrome.action.openPopup();
+                    debugLog('Popup opened, waiting before starting break session', 'info');
+                    
+                    // Wait for popup to fully load and render
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    // Now start the break session (popup should handle this)
+                    chrome.runtime.sendMessage({
+                        action: 'startSessionFromNotification',
+                        sessionType: sessionType
+                    }).catch(() => {
+                        debugLog('Could not send start message to popup, starting in background', 'warn');
+                        // Fallback: start in background if popup communication fails
+                        startNextSessionFromNotification(sessionType);
+                    });
+                } catch (error) {
+                    debugLog(`Failed to open popup: ${error.message}, starting break in background`, 'warn');
+                    // Fallback: start in background if popup won't open
+                    await startNextSessionFromNotification(sessionType);
+                }
+            } else {
+                // For focus sessions: Start in background then open popup
+                await startNextSessionFromNotification(sessionType);
+                chrome.action.openPopup().catch(() => {
+                    debugLog('Could not open popup after starting focus session', 'warn');
+                });
+            }
             
             // Clear notification after a delay to ensure popup has time to open
             setTimeout(() => {
                 chrome.notifications.clear(notificationId);
                 chrome.storage.local.remove([`notification_${notificationId}`]);
-            }, 300);
+            }, 600);
         }
         
     } catch (error) {
