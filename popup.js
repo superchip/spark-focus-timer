@@ -513,18 +513,25 @@ class SparkTimer {
             this.totalTime = this.timeLeft;
             this.sessionStartTime = Date.now(); // Record when this session actually started
             this.debug(`Starting ${this.currentSession} session (${this.getCurrentSessionDuration()} minutes)`, 'info');
-
-            // Open break content when starting a break session (only once per session)
-            if ((this.currentSession === 'shortBreak' || this.currentSession === 'longBreak') && !this.breakContentOpened) {
-                this.openBreakContent();
-                this.breakContentOpened = true;
-            }
         }
 
         this.isRunning = true;
         this.startTimer();
         this.updateControls();
         this.saveTimerState();
+        
+        // Open break content AFTER starting timer (with minimal delay) for break sessions
+        // Brief delay ensures UI updates before content opens
+        const isBreakSession = (this.currentSession === 'shortBreak' || this.currentSession === 'longBreak');
+        if (isBreakSession && !this.breakContentOpened && !this.isPaused) {
+            this.debug('Scheduling break content to open after delay', 'info');
+            setTimeout(() => {
+                this.openBreakContent();
+                this.breakContentOpened = true;
+                this.saveTimerState();
+                this.debug('Break content opened after delay', 'info');
+            }, 200); // 200ms delay - just enough for UI to update
+        }
 
         // Start background timer to ensure notifications work even when popup is closed
         chrome.runtime.sendMessage({
@@ -665,7 +672,7 @@ class SparkTimer {
         this.debug(`Opening break content: ${randomType}`, 'info');
         
         try {
-            let url;
+            let url = ''; // Default empty URL
             switch (randomType) {
                 case 'fact':
                     url = 'https://uselessfacts.jsph.pl/random.json?language=en';
@@ -674,12 +681,13 @@ class SparkTimer {
                     url = 'https://api.quotegarden.io/api/v3/quotes/random';
                     break;
                 case 'website':
-                    this.openRandomWebsite();
-                    return;
-                
+                    // For websites, background script will pick randomly
+                    url = '';
+                    break;
             }
 
-            // Send message to background script to open content
+            // Always send message to background script to open content
+            // This ensures popup can be re-opened after content tab opens
             chrome.runtime.sendMessage({
                 action: 'openBreakContent',
                 type: randomType,

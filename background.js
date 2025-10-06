@@ -318,6 +318,11 @@ async function openBreakContent(type, url) {
                 }
                 break;
 
+            case 'website':
+                // Open a random website from the curated list
+                debugLog('Opening random website', 'info');
+                await openRandomWebsiteBackground();
+                return; // Return early since openRandomWebsiteBackground handles everything
             
 
             default:
@@ -341,7 +346,7 @@ async function openBreakContent(type, url) {
                 }).catch((err) => {
                     debugLog(`Could not re-open popup after break content: ${err.message}`, 'info');
                 });
-            }, 800); // 800ms delay to let Chrome settle
+            }, 600); // 600ms delay to let Chrome settle
         } else {
             debugLog('No content URL generated', 'warn');
         }
@@ -790,7 +795,7 @@ async function openRandomWebsiteBackground() {
             }).catch((err) => {
                 debugLog(`Could not re-open popup after website: ${err.message}`, 'info');
             });
-        }, 800);
+        }, 600);
     } catch (e) {
         debugLog(`Failed to open random website: ${e.message}`, 'error');
     }
@@ -931,8 +936,8 @@ async function handleSessionStartFromNotification(sessionType, notificationId) {
                     await chrome.action.openPopup();
                     debugLog('Popup opened, waiting before starting break session', 'info');
                     
-                    // Wait for popup to fully load and render
-                    await new Promise(resolve => setTimeout(resolve, 500));
+                    // Wait briefly for popup to initialize
+                    await new Promise(resolve => setTimeout(resolve, 300));
                     
                     // Now start the break session (popup should handle this)
                     chrome.runtime.sendMessage({
@@ -956,11 +961,11 @@ async function handleSessionStartFromNotification(sessionType, notificationId) {
                 });
             }
             
-            // Clear notification after a delay to ensure popup has time to open
+            // Clear notification after a brief delay
             setTimeout(() => {
                 chrome.notifications.clear(notificationId);
                 chrome.storage.local.remove([`notification_${notificationId}`]);
-            }, 600);
+            }, 400);
         }
         
     } catch (error) {
