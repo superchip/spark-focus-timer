@@ -337,7 +337,7 @@ async function openBreakContent(type, url) {
             debugLog('Successfully opened tab with content', 'info');
             // Notify popup (if open) that content was opened
             chrome.runtime.sendMessage({ action: 'breakContentOpened', type, url: finalUrl }).catch(() => {});
-            
+
             // After opening break content tab, try to re-open popup after a delay
             // This gives Chrome time to open the tab, then we can show the popup again
             setTimeout(() => {
@@ -348,7 +348,20 @@ async function openBreakContent(type, url) {
                 });
             }, 600); // 600ms delay to let Chrome settle
         } else {
-            debugLog('No content URL generated', 'warn');
+            // No content URL generated (likely API fetch failed) - open fallback website
+            debugLog('No content URL generated, opening fallback website', 'warn');
+            const created = await chrome.tabs.create({ url: 'https://theuselessweb.com/' });
+            debugLog('Opened fallback website', 'info');
+
+            // Notify popup and try to reopen after delay
+            chrome.runtime.sendMessage({ action: 'breakContentOpened', type: 'website', url: 'https://theuselessweb.com/' }).catch(() => {});
+            setTimeout(() => {
+                chrome.action.openPopup().then(() => {
+                    debugLog('Popup re-opened after fallback website', 'info');
+                }).catch((err) => {
+                    debugLog(`Could not re-open popup after fallback: ${err.message}`, 'info');
+                });
+            }, 600);
         }
     } catch (error) {
         debugLog(`Error opening break content: ${error.message}`, 'error');
@@ -911,56 +924,40 @@ async function handleSessionStartFromNotification(sessionType, notificationId) {
         }
         
     if (popupIsOpen) {
-            // Popup is open - just send start command to popup
+            // Popup is open - start session in background to ensure break content opens reliably
+            debugLog('Starting session in background (popup is open and will auto-refresh)', 'info');
+
+            // Start the session in background (this guarantees break content opens)
+            await startNextSessionFromNotification(sessionType);
+
+            // Notify popup to refresh its state
             chrome.runtime.sendMessage({
-                action: 'startSessionFromNotification',
+                action: 'sessionStartedFromNotification',
                 sessionType: sessionType
             }).catch(() => {
-                debugLog('Failed to send start session message to popup', 'error');
+                debugLog('Could not notify popup of session start (popup may have closed)', 'info');
             });
-            
-            // Clear notification immediately since popup will handle everything
+
+            // Clear notification
             chrome.notifications.clear(notificationId);
             chrome.storage.local.remove([`notification_${notificationId}`]);
-            
+
     } else {
-            // Popup is not open - we need to handle this carefully
+            // Popup is not open - start session in background to guarantee it works
             debugLog('Starting session fully in background (popup closed)', 'info');
-            
-            if (sessionType === 'break') {
-                // For break sessions: Open popup first, then start session after a delay
-                // This ensures popup stays open to show the break timer
-                debugLog('Opening popup first for break session', 'info');
-                
-                try {
-                    await chrome.action.openPopup();
-                    debugLog('Popup opened, waiting before starting break session', 'info');
-                    
-                    // Wait briefly for popup to initialize
-                    await new Promise(resolve => setTimeout(resolve, 300));
-                    
-                    // Now start the break session (popup should handle this)
-                    chrome.runtime.sendMessage({
-                        action: 'startSessionFromNotification',
-                        sessionType: sessionType
-                    }).catch(() => {
-                        debugLog('Could not send start message to popup, starting in background', 'warn');
-                        // Fallback: start in background if popup communication fails
-                        startNextSessionFromNotification(sessionType);
-                    });
-                } catch (error) {
-                    debugLog(`Failed to open popup: ${error.message}, starting break in background`, 'warn');
-                    // Fallback: start in background if popup won't open
-                    await startNextSessionFromNotification(sessionType);
-                }
-            } else {
-                // For focus sessions: Start in background then open popup
-                await startNextSessionFromNotification(sessionType);
-                chrome.action.openPopup().catch(() => {
-                    debugLog('Could not open popup after starting focus session', 'warn');
+
+            // Start the session in background first (this ensures break content opens reliably)
+            await startNextSessionFromNotification(sessionType);
+
+            // Then open popup to show the running session
+            setTimeout(() => {
+                chrome.action.openPopup().then(() => {
+                    debugLog('Popup opened to show running session', 'info');
+                }).catch((error) => {
+                    debugLog(`Could not open popup after starting session: ${error.message}`, 'warn');
                 });
-            }
-            
+            }, 200);
+
             // Clear notification after a brief delay
             setTimeout(() => {
                 chrome.notifications.clear(notificationId);
@@ -995,7 +992,10 @@ async function startNextSessionFromNotification(sessionType) {
         const settings = settingsResult.settings || {
             focusDuration: 25,
             shortBreak: 5,
-            longBreak: 30
+            longBreak: 30,
+            enableFacts: true,
+            enableQuotes: true,
+            enableWebsites: true
         };
         
         let duration;
