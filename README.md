@@ -9,13 +9,21 @@ Minimal focus & break (Pomodoro-style) timer that turns breaks into uplifting mi
 | Sessions | Focus / Short Break / Long Break cycle, manual start of breaks (no surprise tab spam) |
 | Persistence | Runs via background alarms even if popup closed |
 | Notifications | Desktop completion notifications with quick Start Break / Start Focus buttons |
-| Break Content | Facts, Quotes, Curated Sites (random enabled type each break) |
+| Break Content | Facts & Quotes (random enabled type each break) |
 | Stats | Daily completed sessions, total focus minutes, streak indicator |
 | Options Page | Adjust durations, toggle content, one-click reset |
 | Privacy | Zero analytics, zero external tracking, local + sync storage only |
 | Debug (Opt‑in) | Hidden console for QA: simulate sessions, inspect storage, export logs |
 
-## 🆕 v1.0.1
+## 🆕 v1.1.2
+
+- Removed curated website break content; breaks now show facts and quotes only
+
+## v1.1.1
+
+- Enhanced break content handling and session management
+
+## v1.0.1
 
 - Added `options.html` (Chrome Web Store friendly settings page)
 - Added `privacy.html` (transparent data & permission disclosure)
@@ -25,7 +33,7 @@ Minimal focus & break (Pomodoro-style) timer that turns breaks into uplifting mi
 ## 🔐 Privacy Snapshot
 
 No telemetry. No third‑party analytics. Only outgoing requests are to the enabled content APIs:
-`uselessfacts.jsph.pl`, `api.quotegarden.io`, plus any curated site you open intentionally.
+`uselessfacts.jsph.pl` / `catfact.ninja` (facts) and `api.quotegarden.io` / `api.quotable.io` (quotes).
 
 Full statement: `privacy.html`.
 
@@ -67,7 +75,7 @@ After each Focus session: user manually starts the break (prevents surprise new 
  
 
 ## 🧩 Customization Pointers
-- Add new break API types in `background.js` / `popup.js`
+- Add new break content API types in `background.js` (`fetchFact`/`fetchQuote` pattern) and `popup.js` (`openBreakContent`)
 - Adjust styling in `styles.css`
 - Modify stats model in `popup.js` (`updateStats`, `updateStatsDisplay`)
 

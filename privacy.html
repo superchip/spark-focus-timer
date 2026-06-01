@@ -21,14 +21,14 @@
 </head>
 <body>
   <div class="card">
-    <h1>Privacy & Data Use</h1>
+    <h1>Privacy &amp; Data Use</h1>
     <p>Spark is designed to respect your time and your privacy. We do not collect, transmit, sell, or monetize personal data. All state and preference storage happens locally in Chrome's extension storage areas.</p>
 
     <h2>What We Store</h2>
     <ul>
-      <li><strong>Timer state & statistics</strong> (focus sessions completed, total focus minutes, streak). Stored locally via <code>chrome.storage.local</code>. Resettable by you.</li>
-  <li><strong>Preferences</strong> (durations, content type toggles, notification preference). Stored via <code>chrome.storage.sync</code> so they can roam across Chrome profiles signed in with sync enabled.</li>
-      <li><strong>Optional debug logs</strong> are only kept if you enable Debug Mode. These never leave your machine and can be cleared.</li>
+      <li><strong>Timer state &amp; statistics</strong> (focus sessions completed, total focus minutes, streak). Stored locally via <code>chrome.storage.local</code>. Resettable at any time from the Options page.</li>
+      <li><strong>Preferences</strong> (durations, content type toggles, notification preference). Stored via <code>chrome.storage.sync</code>. See the <em>Chrome Sync</em> section below for details.</li>
+      <li><strong>Debug logs</strong> — only created and stored locally when you explicitly enable Debug Mode in Settings. Never transmitted. Deletable via the debug console or Options page.</li>
     </ul>
 
     <h2>What We Do NOT Collect</h2>
@@ -40,31 +40,39 @@
     </ul>
 
     <h2>Network Requests</h2>
-    <p>When break content types are enabled we call only the public APIs you opted into:</p>
+    <p>During break periods, the extension fetches content from the following public APIs (only for types you have enabled):</p>
     <ul>
-      <li>Facts: <code>https://uselessfacts.jsph.pl/</code></li>
-      <li>Quotes: <code>https://api.quotegarden.io/</code></li>
+      <li><strong>Facts:</strong> <code>https://uselessfacts.jsph.pl/</code> (primary) and <code>https://catfact.ninja/</code> (fallback)</li>
+      <li><strong>Quotes:</strong> <code>https://api.quotegarden.io/</code> (primary) and <code>https://api.quotable.io/</code> (fallback)</li>
     </ul>
-    <p>Responses are rendered directly in a local tab; nothing is forwarded elsewhere.</p>
+    <p>These requests are fully anonymous — no user data, identifiers, or browsing history are included. Responses are rendered locally; nothing is forwarded to any third party. If all API endpoints are unavailable, no external request is made.</p>
 
+    <h2>Chrome Sync &amp; Google Servers</h2>
+    <p>Preferences (timer durations, toggle states, notification setting) are stored in <code>chrome.storage.sync</code>. When your Chrome browser has account sync enabled, these preferences are synced across your signed-in Google account — this means preference data travels through Google's servers. No personally identifiable information is included in these preferences. You can prevent this by disabling Chrome Sync in your browser settings (<code>chrome://settings/syncSetup</code>); the extension works fully without sync.</p>
+
+    <h2>Debug Mode</h2>
+    <p>This extension includes an optional Debug Mode (disabled by default). When enabled via the Settings panel, it provides a console for simulating sessions, inspecting local storage, and exporting logs. Debug logs are stored only on your device and can be cleared at any time. This feature is intended for testing; normal users never need to enable it.</p>
 
     <h2>Permissions Justification</h2>
     <ul>
-      <li><code>storage</code>: save your preferences, timer state, stats.</li>
-      <li><code>alarms</code>: drive focus / break timers reliably in the background.</li>
-      <li><code>notifications</code>: inform you when a session ends (can be disabled).</li>
-      <li><code>host_permissions</code>: limited to the small set of public APIs needed for content.</li>
+      <li><code>storage</code>: save your preferences, timer state, and daily statistics.</li>
+      <li><code>alarms</code>: drive focus and break timers reliably in the background, even when the popup is closed.</li>
+      <li><code>notifications</code>: inform you when a session ends with quick-action buttons (can be disabled in Settings).</li>
+      <li><code>host_permissions</code>: limited to the four public API domains used for break content (facts and quotes).</li>
     </ul>
 
-    <h2>Removal & Data Deletion</h2>
-    <p>Uninstalling the extension removes all stored data. You can also clear everything from the in‑popup Debug Console (when Debug Mode is enabled) or via the Options page reset button.</p>
+    <h2>Incognito Mode</h2>
+    <p>Spark does not run in incognito windows.</p>
+
+    <h2>Data Deletion</h2>
+    <p>You can delete all stored data at any time from the Options page using the <strong>Delete All Extension Data</strong> button. Uninstalling the extension also removes all stored data from your device.</p>
 
     <h2>Contact</h2>
     <p>Questions or concerns? Open an issue at the <a href="https://github.com/superchip/spark_chrome_extension" target="_blank">GitHub repository</a>.</p>
 
-    <div class="note"><strong>Plain Language Summary:</strong> Spark keeps things local, only fetches content you enable, and includes no tracking. Your productivity data stays yours.</div>
+    <div class="note"><strong>Plain Language Summary:</strong> Spark keeps everything local. The only outbound requests are anonymous calls to public fact and quote APIs during your breaks — only when you have those types enabled. Your sync preferences travel through Google if you use Chrome Sync, but contain no personal data. No tracking. No ads. Your productivity data stays yours.</div>
 
-    <footer>Version 1.0.1 • Last updated: 2025‑09‑12</footer>
+    <footer>Version 1.1.2 &bull; Last updated: 2026-06-01</footer>
   </div>
 </body>
 </html>

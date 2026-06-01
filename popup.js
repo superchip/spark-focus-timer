@@ -23,7 +23,6 @@ class SparkTimer {
             enableNotifications: true,
             enableFacts: true,
             enableQuotes: true,
-            enableWebsites: true,
             enableDebugMode: false
         };
 
@@ -36,10 +35,6 @@ class SparkTimer {
         this.breakContentTypes = [
             'Interesting Fact',
             'Inspirational Quote',
-            'Cool Website',
-
-            'Life Advice',
-            'Random Discovery'
         ];
 
         this.init();
@@ -367,7 +362,6 @@ class SparkTimer {
             enableNotifications: document.getElementById('enableNotifications'),
             enableFacts: document.getElementById('enableFacts'),
             enableQuotes: document.getElementById('enableQuotes'),
-            enableWebsites: document.getElementById('enableWebsites'),
             enableDebugMode: document.getElementById('enableDebugMode')
         };
 
@@ -378,7 +372,6 @@ class SparkTimer {
         elements.enableNotifications.checked = this.settings.enableNotifications;
         elements.enableFacts.checked = this.settings.enableFacts;
         elements.enableQuotes.checked = this.settings.enableQuotes;
-        elements.enableWebsites.checked = this.settings.enableWebsites;
         elements.enableDebugMode.checked = this.settings.enableDebugMode;
 
         // Update display values
@@ -409,7 +402,6 @@ class SparkTimer {
             this.settings.enableNotifications = elements.enableNotifications.checked;
             this.settings.enableFacts = elements.enableFacts.checked;
             this.settings.enableQuotes = elements.enableQuotes.checked;
-            this.settings.enableWebsites = elements.enableWebsites.checked;
             this.settings.enableDebugMode = elements.enableDebugMode.checked;
 
             // Save to storage
@@ -664,8 +656,6 @@ class SparkTimer {
         const enabledTypes = [];
         if (this.settings.enableFacts) enabledTypes.push('fact');
         if (this.settings.enableQuotes) enabledTypes.push('quote');
-        if (this.settings.enableWebsites) enabledTypes.push('website');
-        
 
         if (enabledTypes.length === 0) {
             this.debug('No break content types enabled', 'warn');
@@ -674,51 +664,17 @@ class SparkTimer {
 
         const randomType = enabledTypes[Math.floor(Math.random() * enabledTypes.length)];
         this.debug(`Opening break content: ${randomType}`, 'info');
-        
-        try {
-            let url = ''; // Default empty URL
-            switch (randomType) {
-                case 'fact':
-                    url = 'https://uselessfacts.jsph.pl/random.json?language=en';
-                    break;
-                case 'quote':
-                    url = 'https://api.quotegarden.io/api/v3/quotes/random';
-                    break;
-                case 'website':
-                    // For websites, background script will pick randomly
-                    url = '';
-                    break;
-            }
 
-            // Always send message to background script to open content
-            // This ensures popup can be re-opened after content tab opens
+        try {
             chrome.runtime.sendMessage({
                 action: 'openBreakContent',
                 type: randomType,
-                url: url
+                url: ''
             });
         } catch (error) {
             console.error('Failed to open break content:', error);
             this.debug(`Failed to open break content: ${error.message}`, 'error');
         }
-    }
-
-    openRandomWebsite() {
-        const websites = [
-            'https://theuselessweb.com/',
-            'https://www.boredpanda.com/',
-            'https://www.mentalfloss.com/',
-            'https://www.atlasobscura.com/',
-            'https://99percentinvisible.org/',
-            'https://www.reddit.com/r/todayilearned/',
-            'https://www.reddit.com/r/interestingasfuck/',
-            'https://www.ted.com/talks',
-            'https://www.nationalgeographic.com/photography/',
-            'https://pudding.cool/'
-        ];
-        
-        const randomSite = websites[Math.floor(Math.random() * websites.length)];
-        chrome.tabs.create({ url: randomSite });
     }
 
     getCurrentSessionDuration() {

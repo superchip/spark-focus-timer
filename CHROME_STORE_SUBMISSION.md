@@ -3,16 +3,21 @@
 ## ✅ Technical Compliance (COMPLETED)
 - [x] **Manifest V3**: Using manifest_version: 3
 - [x] **Required Permissions**: Only necessary permissions (storage, notifications, alarms)
-- [x] **Host Permissions**: Limited to required APIs only
+- [x] **Host Permissions**: Limited to 4 active API domains — no unused permissions
 - [x] **Service Worker**: Using service_worker instead of background pages
 - [x] **No Remote Code**: All JavaScript included in package, no eval() or external scripts
 - [x] **Icons**: All required sizes (16, 32, 48, 128px) present in PNG format
+- [x] **Incognito**: Extension disabled in incognito (incognito: not_allowed)
+- [x] **CSP**: Restrictive content_security_policy with no unsafe-eval
 
 ## ✅ Privacy & Data Compliance (COMPLETED)
-- [x] **Privacy Policy**: Comprehensive policy created (privacy.html)
-- [x] **Data Collection**: Minimal local-only data collection documented
-- [x] **No Tracking**: No analytics, tracking, or external data transmission
-- [x] **User Control**: Clear data deletion and opt-out options
+- [x] **Privacy Policy**: Comprehensive policy created (privacy.html + PRIVACY_POLICY.md)
+- [x] **Data Collection**: Minimal, documented — local stats and sync preferences only
+- [x] **Chrome Sync Disclosed**: privacy.html explains sync preferences travel through Google servers
+- [x] **Network Requests Disclosed**: All 4 API domains listed; anonymous-only requests; no fallback external URLs
+- [x] **No Tracking**: No analytics, tracking pixels, telemetry, or fingerprinting
+- [x] **User Control**: "Delete All Extension Data" button on Options page; uninstall removes all data
+- [x] **Debug Mode Disclosed**: Opt-in only, documented in privacy policy and store listing
 
 ## ✅ Store Listing Content (COMPLETED)
 - [x] **Extension Name**: "Spark Focus Timer"
@@ -103,7 +108,7 @@ spark-focus-timer/
   - **Test Instructions**: Optional reviewer guidance
 
 ### 3. Store Listing Details
-- **Item Summary**: "Boost productivity with customizable Pomodoro work and break intervals - focus timer with uplifting break content"
+- **Item Summary**: "Boost productivity with customizable Pomodoro work and break intervals - focus timer with uplifting facts & quotes"
 - **Detailed Description**: Use content from STORE_LISTING.md
 - **Category**: Workflow & Planning
 - **Language**: English (US)

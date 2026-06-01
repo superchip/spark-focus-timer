@@ -40,7 +40,6 @@ chrome.runtime.onInstalled.addListener(() => {
                 enableNotifications: true,
                 enableFacts: true,
                 enableQuotes: true,
-                enableWebsites: true,
                 enableDebugMode: false
             };
             chrome.storage.sync.set({ settings: defaultSettings });
@@ -92,8 +91,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                             const settings = settingsResult.settings || {
                                 enableFacts: true,
                                 enableQuotes: true,
-                                enableWebsites: true,
-                                
                             };
                             openBreakContentBackground(settings);
                             
@@ -225,20 +222,20 @@ function showNotification(title, message, sessionType = null) {
         notificationOptions.buttons = [];
         if (sessionType === 'focus') {
             notificationOptions.buttons.push({
-                title: '🌿 Start Break',
+                title: 'Start Break',
                 iconUrl: 'icons/icon32.png'
             });
             notificationOptions.buttons.push({
-                title: '✖ Dismiss',
+                title: 'Dismiss',
                 iconUrl: 'icons/icon32.png'
             });
         } else if (sessionType === 'break') {
             notificationOptions.buttons.push({
-                title: '⚡ Start Focus',
+                title: 'Start Focus',
                 iconUrl: 'icons/icon32.png'
             });
             notificationOptions.buttons.push({
-                title: '✖ Dismiss',
+                title: 'Dismiss',
                 iconUrl: 'icons/icon32.png'
             });
         }
@@ -318,17 +315,8 @@ async function openBreakContent(type, url) {
                 }
                 break;
 
-            case 'website':
-                // Open a random website from the curated list
-                debugLog('Opening random website', 'info');
-                await openRandomWebsiteBackground();
-                return; // Return early since openRandomWebsiteBackground handles everything
-            
-
             default:
-                // For websites, just open the URL directly
-                finalUrl = url;
-                debugLog(`Opening website directly: ${url}`, 'info');
+                debugLog(`Unknown break content type: ${type}`, 'warn');
                 break;
         }
 
@@ -348,27 +336,11 @@ async function openBreakContent(type, url) {
                 });
             }, 600); // 600ms delay to let Chrome settle
         } else {
-            // No content URL generated (likely API fetch failed) - open fallback website
-            debugLog('No content URL generated, opening fallback website', 'warn');
-            const created = await chrome.tabs.create({ url: 'https://theuselessweb.com/' });
-            debugLog('Opened fallback website', 'info');
-
-            // Notify popup and try to reopen after delay
-            chrome.runtime.sendMessage({ action: 'breakContentOpened', type: 'website', url: 'https://theuselessweb.com/' }).catch(() => {});
-            setTimeout(() => {
-                chrome.action.openPopup().then(() => {
-                    debugLog('Popup re-opened after fallback website', 'info');
-                }).catch((err) => {
-                    debugLog(`Could not re-open popup after fallback: ${err.message}`, 'info');
-                });
-            }, 600);
+            debugLog('No content URL generated — all API endpoints failed', 'warn');
         }
     } catch (error) {
         debugLog(`Error opening break content: ${error.message}`, 'error');
         console.error('Error opening break content:', error);
-        // Fallback: open a default interesting website
-        chrome.tabs.create({ url: 'https://theuselessweb.com/' });
-        debugLog('Opened fallback website', 'info');
     }
 }
 
@@ -386,8 +358,7 @@ async function robustFetchJson(urls, { timeoutMs = 8000, maxRetriesPerUrl = 1 } 
                 const res = await fetch(url, { signal: controller.signal, cache: 'no-store' });
                 clearTimeout(timer);
                 if (!res.ok) {
-                    const text = await res.text().catch(() => '');
-                    throw new Error(`HTTP ${res.status} ${res.statusText} :: ${text.slice(0,120)}`);
+                    throw new Error(`HTTP ${res.status} ${res.statusText}`);
                 }
                 const json = await res.json();
                 debugLog(`Fetched ${url} in ${Date.now() - started}ms`, 'info');
@@ -656,8 +627,6 @@ async function handleTimerComplete() {
             enableNotifications: true,
             enableFacts: true,
             enableQuotes: true,
-            enableWebsites: true,
-            
         };
         
         debugLog(`Completing ${timerState.currentSession} session`, 'info');
@@ -758,8 +727,6 @@ async function openBreakContentBackground(settings) {
     const enabledTypes = [];
     if (settings.enableFacts) enabledTypes.push('fact');
     if (settings.enableQuotes) enabledTypes.push('quote');
-    if (settings.enableWebsites) enabledTypes.push('website');
-    
 
     if (enabledTypes.length === 0) {
         debugLog('No break content types enabled', 'warn');
@@ -768,49 +735,11 @@ async function openBreakContentBackground(settings) {
 
     const randomType = enabledTypes[Math.floor(Math.random() * enabledTypes.length)];
     debugLog(`Opening break content: ${randomType}`, 'info');
-    
+
     try {
-        if (randomType === 'website') {
-            await openRandomWebsiteBackground();
-            return;
-        }
-        // For fact/quote pass placeholder (unused) URL for backwards compatibility
         await openBreakContent(randomType, '');
     } catch (error) {
         debugLog(`Failed to open break content: ${error.message}`, 'error');
-    }
-}
-
-// Open random website in background
-async function openRandomWebsiteBackground() {
-    const websites = [
-        'https://theuselessweb.com/',
-        'https://www.boredpanda.com/',
-        'https://www.mentalfloss.com/',
-        'https://www.atlasobscura.com/',
-        'https://99percentinvisible.org/',
-        'https://www.reddit.com/r/todayilearned/',
-        'https://www.reddit.com/r/interestingasfuck/',
-        'https://www.ted.com/talks',
-        'https://www.nationalgeographic.com/photography/',
-        'https://pudding.cool/'
-    ];
-    
-    const randomSite = websites[Math.floor(Math.random() * websites.length)];
-    try {
-        await chrome.tabs.create({ url: randomSite });
-        debugLog(`Opened random website: ${randomSite}`, 'info');
-        
-        // Try to re-open popup after opening website
-        setTimeout(() => {
-            chrome.action.openPopup().then(() => {
-                debugLog('Popup re-opened after website tab', 'info');
-            }).catch((err) => {
-                debugLog(`Could not re-open popup after website: ${err.message}`, 'info');
-            });
-        }, 600);
-    } catch (e) {
-        debugLog(`Failed to open random website: ${e.message}`, 'error');
     }
 }
 
@@ -995,7 +924,6 @@ async function startNextSessionFromNotification(sessionType) {
             longBreak: 30,
             enableFacts: true,
             enableQuotes: true,
-            enableWebsites: true
         };
         
         let duration;
@@ -1058,29 +986,13 @@ async function startNextSessionFromNotification(sessionType) {
         if (sessionType === 'break') {
             if (!newTimerState.breakContentOpened) {
                 debugLog('Attempting to open break content (notification path)', 'info');
-                let opened = false;
                 try {
                     await openBreakContentBackground(settings);
-                    opened = true;
-                } catch (e) {
-                    debugLog(`Primary break content open failed: ${e.message}`, 'error');
-                }
-                if (!opened) {
-                    // Guarantee some content opens
-                    try {
-                        debugLog('Opening fallback random website (notification path)', 'warn');
-                        await openRandomWebsiteBackground();
-                        opened = true;
-                    } catch (e2) {
-                        debugLog(`Fallback website open failed: ${e2.message}`, 'error');
-                    }
-                }
-                if (opened) {
                     newTimerState.breakContentOpened = true;
                     await chrome.storage.local.set({ timerState: newTimerState });
                     debugLog('Break content opened and state updated (notification path)', 'info');
-                } else {
-                    debugLog('Unable to open any break content after all attempts', 'error');
+                } catch (e) {
+                    debugLog(`Break content open failed: ${e.message}`, 'error');
                 }
             } else {
                 debugLog('Break content already marked opened, skipping (notification path)', 'info');
@@ -1133,14 +1045,10 @@ function handleDebugCommand(command, request) {
 
 // Test break content functionality
 function testBreakContent(contentType = null) {
-    const types = ['fact', 'quote', 'website'];
+    const types = ['fact', 'quote'];
     const testType = contentType || types[Math.floor(Math.random() * types.length)];
-    
     debugLog(`Testing break content type: ${testType}`, 'info');
-    
-    // For website still pass a URL; for fact/quote URL ignored
-    const url = testType === 'website' ? 'https://theuselessweb.com/' : '';
-    openBreakContent(testType, url);
+    openBreakContent(testType, '');
 }
 
 // Export debug logs for analysis

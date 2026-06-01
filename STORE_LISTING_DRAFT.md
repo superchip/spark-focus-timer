@@ -1,14 +1,14 @@
 # Spark Focus Timer – Store Listing Draft
 
 ## Short Description (132 char max)
-Minimal focus & break timer that shows inspirational quotes, facts & discoveries on breaks. No tracking. Stay sharp.
+Minimal focus & break timer that shows inspirational facts & quotes on breaks. No tracking, no distractions. Stay sharp.
 
 ## Long Description
 Spark is a lightweight Pomodoro-style focus timer that turns breaks into uplifting micro‑discoveries. Instead of drifting into distractions, enjoy a quick dose of curiosity or inspiration – then get back to deep work.
 
 ### What Makes Spark Different
 - Intentional Breaks: You manually start breaks (no surprise tab spam)
-- Inspiring Content: Facts, quotes, curated sites
+- Inspiring Content: Facts and quotes
 - Reliable Background Engine: Timer continues even if popup is closed
 - Smart Notifications: Action buttons let you jump straight into the next session
 - Privacy First: No analytics, no tracking scripts, no accounts
@@ -22,7 +22,7 @@ Spark is a lightweight Pomodoro-style focus timer that turns breaks into uplifti
 - Debug Console (opt‑in) for testers and power users
 
 ### Privacy & Data
-Spark stores everything locally using Chrome extension storage. No browsing history, no external telemetry, nothing sold or shared. Only outbound network calls are to the public APIs you enable (facts, quotes) plus any curated site you explicitly open.
+Spark stores everything locally using Chrome extension storage. No browsing history, no external telemetry, nothing sold or shared. Only outbound network calls are to the public APIs you enable (facts, quotes).
 
 ### Permissions Explained
 - storage: Save timer state, statistics, preferences
@@ -35,6 +35,9 @@ Spark stores everything locally using Chrome extension storage. No browsing hist
 - Keyboard shortcuts
 - Basic theming / light mode
 - Exportable stats
+
+### Debug Mode (Optional)
+An opt-in Debug Console is available via Settings for developers and testers. It provides session simulation and local storage inspection tools. Disabled by default — normal users never see it.
 
 ### Support / Feedback
 Open an issue or contribute via: https://github.com/superchip/spark_chrome_extension

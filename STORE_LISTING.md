@@ -1,8 +1,8 @@
 # Chrome Web Store Listing for Spark Focus Timer
 
 ## Summary (132 characters max)
-**"Boost productivity with customizable Pomodoro work and break intervals - focus timer with uplifting break content"**
-*(Character count: 130/132)*
+**"Boost productivity with customizable Pomodoro work and break intervals - focus timer with uplifting facts & quotes"**
+*(Character count: 131/132)*
 
 ## Detailed Description
 
@@ -11,7 +11,7 @@ Transform your productivity with Spark Focus Timer - a clean, powerful Pomodoro 
 ### ✨ Key Features
 - **Customizable Focus & Break Times**: 15-60 minute focus sessions, 3-15 minute short breaks, 15-45 minute long breaks
 - **Smart Notifications**: Desktop alerts with quick-action buttons to start sessions without opening the extension
-- **Uplifting Break Content**: Interesting facts, inspirational quotes, and curated websites during breaks
+- **Uplifting Break Content**: Interesting facts and inspirational quotes during breaks
 - **Focus Streak Tracking**: Monitor daily completed sessions and maintain your productivity momentum
 - **Clean, Distraction-Free Interface**: Minimal design that keeps you focused on what matters
 - **Manual Break Control**: You decide when to start breaks - no surprise tab interruptions
@@ -38,6 +38,9 @@ Transform your productivity with Spark Focus Timer - a clean, powerful Pomodoro 
 Spark Focus Timer follows the proven Pomodoro Technique: work in focused intervals, take regular breaks, and maintain high productivity without burnout. Every 4 focus sessions, you'll get a longer break to fully recharge.
 
 Start building better work habits today with Spark Focus Timer!
+
+### ℹ️ Developer Note
+This extension includes an optional Debug Mode (disabled by default, accessible via Settings). It is intended for testing and power users. Normal users never see or need it.
 
 ## Category
 **Workflow & Planning**

@@ -6,9 +6,9 @@
     longBreak: document.getElementById('longBreak'),
     enableFacts: document.getElementById('enableFacts'),
     enableQuotes: document.getElementById('enableQuotes'),
-    enableWebsites: document.getElementById('enableWebsites'),
-  enableNotifications: document.getElementById('enableNotifications'),
+    enableNotifications: document.getElementById('enableNotifications'),
     resetDefaults: document.getElementById('resetDefaults'),
+    clearAllData: document.getElementById('clearAllData'),
     saveIndicator: document.getElementById('saveIndicator')
   };
 
@@ -19,8 +19,7 @@
     enableNotifications: true,
     enableFacts: true,
     enableQuotes: true,
-    enableWebsites: true,
-  enableDebugMode: false
+    enableDebugMode: false
   };
 
   function showSaved() {
@@ -61,6 +60,13 @@
     if (!confirm('Reset all options to recommended defaults?')) return;
     Object.entries(defaultSettings).forEach(([k,v]) => { if (elements[k]) { if (elements[k].type==='checkbox') elements[k].checked = v; else elements[k].value = v; } });
     save();
+  });
+
+  elements.clearAllData.addEventListener('click', () => {
+    if (!confirm('Delete all stored data (statistics, preferences, logs)? This cannot be undone.')) return;
+    chrome.storage.sync.clear();
+    chrome.storage.local.clear();
+    alert('All extension data deleted. Close and reopen the extension to apply defaults.');
   });
 
   load();
