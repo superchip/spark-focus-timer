@@ -16,7 +16,8 @@
     "https://uselessfacts.jsph.pl/*",
     "https://catfact.ninja/*",
     "https://api.quotegarden.io/*",
-    "https://api.quotable.io/*"
+    "https://api.quotable.io/*",
+    "https://ntfy.sh/*"
   ],
   "background": {
     "service_worker": "background.js"

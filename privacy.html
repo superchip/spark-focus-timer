@@ -27,7 +27,7 @@
     <h2>What We Store</h2>
     <ul>
       <li><strong>Timer state &amp; statistics</strong> (focus sessions completed, total focus minutes, streak). Stored locally via <code>chrome.storage.local</code>. Resettable at any time from the Options page.</li>
-      <li><strong>Preferences</strong> (durations, content type toggles, notification preference). Stored via <code>chrome.storage.sync</code>. See the <em>Chrome Sync</em> section below for details.</li>
+      <li><strong>Preferences</strong> (durations, content type toggles, notification preference, mobile push toggle and ntfy.sh topic if configured). Stored via <code>chrome.storage.sync</code>. See the <em>Chrome Sync</em> section below for details.</li>
       <li><strong>Debug logs</strong> — only created and stored locally when you explicitly enable Debug Mode in Settings. Never transmitted. Deletable via the debug console or Options page.</li>
     </ul>
 
@@ -47,6 +47,10 @@
     </ul>
     <p>These requests are fully anonymous — no user data, identifiers, or browsing history are included. Responses are rendered locally; nothing is forwarded to any third party. If all API endpoints are unavailable, no external request is made.</p>
 
+    <h2>Optional Push Notifications (ntfy.sh)</h2>
+    <p>If you enable "Mobile Push" in Options and set a topic name, Spark sends a short message (e.g. "Focus session started (25 min)") to <code>https://ntfy.sh</code> tagged with your chosen topic whenever a focus or break session starts or ends, so a phone subscribed to that topic in the ntfy app can display it. This feature is off by default.</p>
+    <p><strong>The topic name is not a secret or an access-controlled credential</strong> — ntfy topics are public-by-obscurity, meaning anyone who knows or guesses your topic name can also subscribe and see these notifications. Choose a long, hard-to-guess topic name. No other identifying information is sent.</p>
+
     <h2>Chrome Sync &amp; Google Servers</h2>
     <p>Preferences (timer durations, toggle states, notification setting) are stored in <code>chrome.storage.sync</code>. When your Chrome browser has account sync enabled, these preferences are synced across your signed-in Google account — this means preference data travels through Google's servers. No personally identifiable information is included in these preferences. You can prevent this by disabling Chrome Sync in your browser settings (<code>chrome://settings/syncSetup</code>); the extension works fully without sync.</p>
 
@@ -58,7 +62,7 @@
       <li><code>storage</code>: save your preferences, timer state, and daily statistics.</li>
       <li><code>alarms</code>: drive focus and break timers reliably in the background, even when the popup is closed.</li>
       <li><code>notifications</code>: inform you when a session ends with quick-action buttons (can be disabled in Settings).</li>
-      <li><code>host_permissions</code>: limited to the four public API domains used for break content (facts and quotes).</li>
+      <li><code>host_permissions</code>: limited to the public API domains used for break content (facts and quotes) and, if enabled, <code>ntfy.sh</code> for optional mobile push notifications.</li>
     </ul>
 
     <h2>Incognito Mode</h2>
@@ -70,9 +74,9 @@
     <h2>Contact</h2>
     <p>Questions or concerns? Open an issue at the <a href="https://github.com/superchip/spark_chrome_extension" target="_blank">GitHub repository</a>.</p>
 
-    <div class="note"><strong>Plain Language Summary:</strong> Spark keeps everything local. The only outbound requests are anonymous calls to public fact and quote APIs during your breaks — only when you have those types enabled. Your sync preferences travel through Google if you use Chrome Sync, but contain no personal data. No tracking. No ads. Your productivity data stays yours.</div>
+    <div class="note"><strong>Plain Language Summary:</strong> Spark keeps everything local. The only outbound requests are anonymous calls to public fact and quote APIs during your breaks — only when you have those types enabled — and, if you turn on mobile push, session start/end pings to ntfy.sh using a topic name you choose (that name isn't secret, so don't reuse anything sensitive). Your sync preferences travel through Google if you use Chrome Sync, but contain no personal data. No tracking. No ads. Your productivity data stays yours.</div>
 
-    <footer>Version 1.1.2 &bull; Last updated: 2026-06-01</footer>
+    <footer>Version 1.1.2 &bull; Last updated: 2026-08-06</footer>
   </div>
 </body>
 </html>

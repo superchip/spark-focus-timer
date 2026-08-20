@@ -132,6 +132,15 @@
 
                     <div class="setting-group">
                         <label class="checkbox-label">
+                            <input type="checkbox" id="enablePush">
+                            <span>Mobile Push (ntfy.sh)</span>
+                        </label>
+                        <input type="text" id="ntfyTopic" placeholder="ntfy topic, e.g. spark-timer-7f2ac9">
+                        <div class="setting-note">Get pushes on your phone via the <a href="https://ntfy.sh" target="_blank" rel="noopener">ntfy</a> app. Not a secret — anyone who knows the topic can subscribe.</div>
+                    </div>
+
+                    <div class="setting-group">
+                        <label class="checkbox-label">
                             <input type="checkbox" id="enableDebugMode">
                             <span>Debug Mode</span>
                         </label>

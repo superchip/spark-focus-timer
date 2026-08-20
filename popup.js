@@ -7,6 +7,7 @@ class SparkTimer {
         this.timeLeft = 0;
         this.totalTime = 0;
         this.interval = null;
+        this.completionFallbackTimer = null; // Last-resort local completion if background stays silent
         this.breakContentOpened = false; // Track if break content has been opened for current session
         this.sessionStartTime = null; // Track when the current session actually started
 
@@ -23,7 +24,9 @@ class SparkTimer {
             enableNotifications: true,
             enableFacts: true,
             enableQuotes: true,
-            enableDebugMode: false
+            enableDebugMode: false,
+            enablePush: false,
+            ntfyTopic: ''
         };
 
         // Debug system
@@ -316,6 +319,28 @@ class SparkTimer {
                     // Background wants us to start a session since popup is already open
                     this.debug(`Starting ${message.sessionType} session from notification in current popup`, 'info');
                     this.startSessionFromNotificationMessage(message.sessionType);
+                } else if (message.action === 'timerCompletedInBackground') {
+                    // Background's alarm already fired the notification and updated stats/state -
+                    // cancel our local fallback and just sync the UI to what it computed.
+                    this.debug('Background confirmed timer completion - syncing UI', 'info');
+                    if (this.completionFallbackTimer) {
+                        clearTimeout(this.completionFallbackTimer);
+                        this.completionFallbackTimer = null;
+                    }
+                    if (this.interval) {
+                        clearInterval(this.interval);
+                        this.interval = null;
+                    }
+                    const state = message.timerState;
+                    this.isRunning = false;
+                    this.currentSession = state.currentSession;
+                    this.sessionCount = state.sessionCount;
+                    this.timeLeft = state.timeLeft;
+                    this.totalTime = state.totalTime;
+                    this.breakContentOpened = state.breakContentOpened || false;
+                    this.updateDisplay();
+                    this.updateControls();
+                    this.loadStats();
                 }
             } catch (error) {
                 this.debug(`Error handling message: ${error.message}`, 'error');
@@ -360,6 +385,8 @@ class SparkTimer {
             shortBreak: document.getElementById('shortBreak'),
             longBreak: document.getElementById('longBreak'),
             enableNotifications: document.getElementById('enableNotifications'),
+            enablePush: document.getElementById('enablePush'),
+            ntfyTopic: document.getElementById('ntfyTopic'),
             enableFacts: document.getElementById('enableFacts'),
             enableQuotes: document.getElementById('enableQuotes'),
             enableDebugMode: document.getElementById('enableDebugMode')
@@ -370,6 +397,8 @@ class SparkTimer {
         elements.shortBreak.value = this.settings.shortBreak;
         elements.longBreak.value = this.settings.longBreak;
         elements.enableNotifications.checked = this.settings.enableNotifications;
+        elements.enablePush.checked = this.settings.enablePush;
+        elements.ntfyTopic.value = this.settings.ntfyTopic || '';
         elements.enableFacts.checked = this.settings.enableFacts;
         elements.enableQuotes.checked = this.settings.enableQuotes;
         elements.enableDebugMode.checked = this.settings.enableDebugMode;
@@ -400,6 +429,8 @@ class SparkTimer {
             this.settings.shortBreak = parseInt(elements.shortBreak.value);
             this.settings.longBreak = parseInt(elements.longBreak.value);
             this.settings.enableNotifications = elements.enableNotifications.checked;
+            this.settings.enablePush = elements.enablePush.checked;
+            this.settings.ntfyTopic = elements.ntfyTopic.value.trim();
             this.settings.enableFacts = elements.enableFacts.checked;
             this.settings.enableQuotes = elements.enableQuotes.checked;
             this.settings.enableDebugMode = elements.enableDebugMode.checked;
@@ -486,6 +517,8 @@ class SparkTimer {
     // Dismiss any pending actionable notifications when user explicitly starts a session
     chrome.runtime.sendMessage({ action: 'dismissAllNotifications' });
 
+        const isResume = this.isPaused; // capture before the branch below mutates it
+
         if (this.isPaused) {
             this.isPaused = false;
             // When resuming, adjust sessionStartTime to account for the time that has already elapsed
@@ -535,7 +568,8 @@ class SparkTimer {
             duration: this.timeLeft / 60, // Convert seconds to minutes
             sessionInfo: {
                 type: this.currentSession,
-                sessionCount: this.sessionCount
+                sessionCount: this.sessionCount,
+                isNewSession: !isResume
             }
         });
     }
@@ -590,22 +624,38 @@ class SparkTimer {
             this.saveTimerState();
 
             if (this.timeLeft <= 0) {
-                this.handleSessionComplete();
+                clearInterval(this.interval);
+                this.interval = null;
+                this.awaitBackgroundCompletion();
             }
         }, interval);
+    }
+
+    // The background's chrome.alarms-driven completion is the source of truth
+    // (it's what fires reliably regardless of whether the popup is open) - give
+    // it a moment to broadcast 'timerCompletedInBackground' before falling back
+    // to handling completion locally, so we never show a duplicate notification
+    // or double-count stats when both paths would otherwise race.
+    awaitBackgroundCompletion() {
+        this.debug('Timer reached zero - waiting for background to confirm completion', 'info');
+        this.completionFallbackTimer = setTimeout(() => {
+            this.completionFallbackTimer = null;
+            this.debug('Background completion not received in time - handling locally', 'warn');
+            this.handleSessionComplete();
+        }, 3000);
     }
 
     async handleSessionComplete() {
         this.isRunning = false;
         clearInterval(this.interval);
-        
+
         this.debug(`${this.currentSession} session completed`, 'info');
-        
+
         // Stop background timer since we're handling completion here
         chrome.runtime.sendMessage({
             action: 'stopBackgroundTimer'
         });
-        
+
         // Show notification
         if (this.settings.enableNotifications) {
             this.showNotification();

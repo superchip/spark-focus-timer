@@ -1,6 +1,6 @@
 # Privacy Policy for Spark Focus Timer
 
-**Effective Date:** June 2026  
+**Effective Date:** August 2026  
 **Version:** 1.1.2
 
 ## Overview
@@ -14,7 +14,7 @@ Spark Focus Timer respects your privacy and is committed to protecting your pers
 - Debug logs — only when Debug Mode is explicitly enabled by the user
 
 ### Sync Storage (`chrome.storage.sync`)
-- User preferences: timer durations, break content toggles, notification preference, debug mode toggle
+- User preferences: timer durations, break content toggles, notification preference, debug mode toggle, mobile push toggle and ntfy.sh topic (if configured)
 
 **No personal information** is stored in any of these areas.
 
@@ -28,8 +28,12 @@ Spark fetches content from public APIs **only during break periods** and **only 
 |-------------|-------------|--------------|
 | Facts | `https://uselessfacts.jsph.pl/` | `https://catfact.ninja/` |
 | Quotes | `https://api.quotegarden.io/` | `https://api.quotable.io/` |
+| Push Notifications (optional) | `https://ntfy.sh/` | — |
 
 All requests are fully anonymous. No user data, identifiers, or browsing history are included. If all API endpoints are unavailable, no external request is made and no fallback URL is opened.
+
+### Optional Push Notifications (ntfy.sh)
+If you enable "Mobile Push" in Options and set a topic name, Spark sends a short message (e.g. "Focus session started (25 min)") to `https://ntfy.sh` tagged with your chosen topic whenever a focus or break session starts or ends, so a phone subscribed to that topic in the ntfy app can display it. This feature is **off by default**. **The topic name is not a secret or an access-controlled credential** — ntfy topics are public-by-obscurity, meaning anyone who knows or guesses your topic name can also subscribe and see these notifications. Choose a long, hard-to-guess topic name. No other identifying information is sent.
 
 ## What We Do NOT Collect
 - No browsing history
@@ -50,7 +54,7 @@ Users can delete all stored data at any time:
 - **Uninstalling** the extension removes all data from the device
 
 ## Data Sharing
-We never share, sell, or transmit user data to third parties. The only outbound network activity is the anonymous content API calls described above.
+We never share, sell, or transmit user data to third parties. The only outbound network activity is the anonymous content API calls and, if you opt in, the ntfy.sh push messages described above.
 
 ## Children's Privacy
 Spark Focus Timer does not knowingly collect data from children under 13 years of age.

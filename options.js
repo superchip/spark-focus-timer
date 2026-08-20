@@ -7,6 +7,8 @@
     enableFacts: document.getElementById('enableFacts'),
     enableQuotes: document.getElementById('enableQuotes'),
     enableNotifications: document.getElementById('enableNotifications'),
+    enablePush: document.getElementById('enablePush'),
+    ntfyTopic: document.getElementById('ntfyTopic'),
     resetDefaults: document.getElementById('resetDefaults'),
     clearAllData: document.getElementById('clearAllData'),
     saveIndicator: document.getElementById('saveIndicator')
@@ -19,7 +21,9 @@
     enableNotifications: true,
     enableFacts: true,
     enableQuotes: true,
-    enableDebugMode: false
+    enableDebugMode: false,
+    enablePush: false,
+    ntfyTopic: ''
   };
 
   function showSaved() {

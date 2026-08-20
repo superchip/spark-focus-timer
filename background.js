@@ -40,7 +40,9 @@ chrome.runtime.onInstalled.addListener(() => {
                 enableNotifications: true,
                 enableFacts: true,
                 enableQuotes: true,
-                enableDebugMode: false
+                enableDebugMode: false,
+                enablePush: false,
+                ntfyTopic: ''
             };
             chrome.storage.sync.set({ settings: defaultSettings });
             debugLog('Default settings initialized', 'info');
@@ -192,6 +194,12 @@ function startBackgroundTimer(durationMinutes, sessionInfo) {
     }
     
     debugLog(`Background timer set: main=${durationMinutes}min, check=${durationMinutes + 1}min, keepAlive=${keepAliveInterval}min`, 'info');
+
+    // Only fire a "session started" push for genuine new sessions, not popup
+    // reopen restoration or mid-session duration-change restarts.
+    if (sessionInfo && sessionInfo.isNewSession) {
+        maybeSendSessionStartPush(sessionInfo, durationMinutes);
+    }
 }
 
 // Stop background timer
@@ -377,6 +385,58 @@ async function robustFetchJson(urls, { timeoutMs = 8000, maxRetriesPerUrl = 1 } 
     }
     debugLog(`All fetch attempts failed: ${errors.map(e => e.url + '#' + (e.attempt+1) + ':' + e.message).join(' | ')}`, 'error');
     return null;
+}
+
+// Push a message to a phone subscribed to `topic` via ntfy.sh. Uses the JSON
+// publish endpoint (rather than POST /<topic> + Title header) because the
+// Headers object throws on non-Latin1 values and our notification copy uses
+// emoji. Never throws; single attempt only (a late "session started" ping is
+// more confusing than a silently dropped one).
+async function sendNtfyPush(topic, title, message, { priority = 3 } = {}) {
+    if (!topic) return false;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 6000);
+    try {
+        const res = await fetch('https://ntfy.sh', {
+            method: 'POST',
+            signal: controller.signal,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ topic, title, message, priority })
+        });
+        clearTimeout(timer);
+        if (!res.ok) {
+            debugLog(`ntfy push failed: HTTP ${res.status} ${res.statusText}`, 'warn');
+            return false;
+        }
+        debugLog(`ntfy push sent: "${title}"`, 'info');
+        return true;
+    } catch (e) {
+        clearTimeout(timer);
+        debugLog(`ntfy push error: ${e.message}`, 'warn');
+        return false;
+    }
+}
+
+// Fires a push for a genuine new session start (see startBackgroundTimer's
+// isNewSession gate). Reads settings independently since startBackgroundTimer
+// itself stays synchronous for the alarm calls.
+async function maybeSendSessionStartPush(sessionInfo, durationMinutes) {
+    try {
+        const { settings } = await chrome.storage.sync.get(['settings']);
+        if (!settings || !settings.enablePush || !settings.ntfyTopic) return;
+        const topic = settings.ntfyTopic.trim();
+        if (!topic) return;
+        const mins = Math.round(durationMinutes);
+        if (sessionInfo.type === 'focus') {
+            sendNtfyPush(topic, '⚡ Focus Started', `Focus session started (${mins} min).`);
+        } else if (sessionInfo.type === 'longBreak') {
+            sendNtfyPush(topic, '🌿 Long Break', `Long break time! (${mins} min)`);
+        } else {
+            sendNtfyPush(topic, '☕ Break Started', `Break time! (${mins} min)`);
+        }
+    } catch (e) {
+        debugLog(`maybeSendSessionStartPush error: ${e.message}`, 'warn');
+    }
 }
 
 // Backwards-compatible wrapper for existing calls expecting single URL
@@ -627,10 +687,12 @@ async function handleTimerComplete() {
             enableNotifications: true,
             enableFacts: true,
             enableQuotes: true,
+            enablePush: false,
+            ntfyTopic: '',
         };
-        
+
         debugLog(`Completing ${timerState.currentSession} session`, 'info');
-        
+
         // Show completion notification
         if (settings.enableNotifications) {
             if (timerState.currentSession === 'focus') {
@@ -639,7 +701,19 @@ async function handleTimerComplete() {
                 showNotification('⏰ Break Time Over!', 'Ready to focus again? Let\'s spark some productivity!', 'break');
             }
         }
-        
+
+        // Push completion event to phone (independent of desktop notification toggle)
+        if (settings.enablePush && settings.ntfyTopic) {
+            const topic = settings.ntfyTopic.trim();
+            if (topic) {
+                if (timerState.currentSession === 'focus') {
+                    sendNtfyPush(topic, '⚡ Focus Complete', "Nice work! Focus session is done — break's up next.");
+                } else {
+                    sendNtfyPush(topic, '⏰ Break Over', 'Break finished. Ready to focus again?');
+                }
+            }
+        }
+
         // Update stats
         await updateBackgroundStats(timerState, settings);
         
@@ -680,10 +754,19 @@ async function handleTimerComplete() {
         
         await chrome.storage.local.set({ timerState: newTimerState });
         debugLog(`Timer state updated for next ${nextSession} session`, 'info');
-        
+
         // Clear any existing alarms
         chrome.alarms.clear('sparkTimer');
-        
+
+        // Let an open popup know completion was already handled here, so it can
+        // sync instead of racing its own local timer to the same conclusion.
+        chrome.runtime.sendMessage({
+            action: 'timerCompletedInBackground',
+            timerState: newTimerState
+        }).catch(() => {
+            // No popup open to receive it - expected and harmless
+        });
+
     } catch (error) {
         debugLog(`Error handling timer completion: ${error.message}`, 'error');
         console.error('Error handling timer completion:', error);
@@ -924,6 +1007,8 @@ async function startNextSessionFromNotification(sessionType) {
             longBreak: 30,
             enableFacts: true,
             enableQuotes: true,
+            enablePush: false,
+            ntfyTopic: '',
         };
         
         let duration;
@@ -979,7 +1064,8 @@ async function startNextSessionFromNotification(sessionType) {
         // Start background timer
         startBackgroundTimer(duration, {
             type: actualSessionType,
-            sessionCount: timerState.sessionCount
+            sessionCount: timerState.sessionCount,
+            isNewSession: true
         });
         
         // If starting a break session, open break content and update state

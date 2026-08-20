@@ -12,7 +12,7 @@
     .card { background:#fff; border:1px solid #e5e9ef; border-radius:18px; padding:28px 30px 32px; box-shadow:0 2px 4px rgba(0,0,0,.04),0 12px 24px -10px rgba(0,0,0,.08); max-width:920px; margin:0 auto 32px; }
     .grid { display:grid; gap:28px; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); }
     label span.small { display:block; font-size:12px; font-weight:500; color:#64748b; margin-top:4px; }
-    input[type=number] { width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:10px; font-size:14px; }
+    input[type=number], input[type=text] { width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:10px; font-size:14px; }
     input[type=checkbox] { width:18px; height:18px; }
     fieldset { border:none; padding:0; margin:0; }
     .row { display:flex; align-items:center; gap:14px; margin-bottom:14px; }
@@ -64,6 +64,18 @@
       <div class="row"><input id="enableNotifications" type="checkbox" /> <label for="enableNotifications">Enable desktop notifications for session completion</label></div>
     </fieldset>
 
+    <h2>Mobile Push (ntfy.sh)</h2>
+    <fieldset>
+      <div class="row"><input id="enablePush" type="checkbox" /> <label for="enablePush">Send push notifications to my phone via ntfy.sh</label></div>
+      <div class="row">
+        <label for="ntfyTopic" style="flex:0 0 90px;">ntfy Topic</label>
+        <input id="ntfyTopic" type="text" placeholder="e.g. spark-timer-7f2ac9" style="flex:1;" />
+      </div>
+      <p class="section-note">
+        Install the <a href="https://ntfy.sh" target="_blank">ntfy</a> app on your phone (no account needed) and subscribe to this exact topic name to get alerts when a focus or break session starts and ends.
+        A topic name is not a secret — anyone who knows or guesses it can also subscribe. Use a long, hard-to-guess string. Consider disabling this while using Debug Mode's accelerated test sessions, since each simulated cycle will also send a push.
+      </p>
+    </fieldset>
 
     <h2>Maintenance</h2>
     <button class="reset" id="resetDefaults">Reset to Recommended Defaults</button>
