@@ -11,6 +11,9 @@ class SparkTimer {
         this.breakContentOpened = false; // Track if break content has been opened for current session
         this.sessionStartTime = null; // Track when the current session actually started
 
+        // Session notes: optional "what are you focusing on" / "what do you want to do on your break" text
+        this.sessionNote = null; // committed note text for the currently running session, or null if none/idle
+
         // Long-press state
         this.isLongPressing = false;
         this.longPressTimer = null;
@@ -95,6 +98,7 @@ class SparkTimer {
                 this.timeLeft = result.timerState.timeLeft;
                 this.totalTime = result.timerState.totalTime;
                 this.breakContentOpened = result.timerState.breakContentOpened || false;
+                this.sessionNote = result.timerState.sessionNote || null;
                 this.debug(`Restored timer state for ${this.currentSession} session (not running)`, 'info');
                 this.updateDisplay();
                 this.updateControls();
@@ -114,6 +118,7 @@ class SparkTimer {
         this.sessionCount = state.sessionCount;
         this.totalTime = state.totalTime;
         this.breakContentOpened = state.breakContentOpened || false;
+        this.sessionNote = state.sessionNote || null;
 
         if (state.sessionStartTime) {
             // New logic: calculate elapsed time from actual session start
@@ -154,6 +159,7 @@ class SparkTimer {
                 this.timeLeft = result.timerState.timeLeft;
                 this.totalTime = result.timerState.totalTime;
                 this.breakContentOpened = result.timerState.breakContentOpened || false;
+                this.sessionNote = result.timerState.sessionNote || null;
                 this.debug('Timer state restored from background completion', 'info');
                 this.updateDisplay();
                 this.updateControls();
@@ -338,6 +344,7 @@ class SparkTimer {
                     this.timeLeft = state.timeLeft;
                     this.totalTime = state.totalTime;
                     this.breakContentOpened = state.breakContentOpened || false;
+                    this.sessionNote = state.sessionNote || null;
                     this.updateDisplay();
                     this.updateControls();
                     this.loadStats();
@@ -542,6 +549,13 @@ class SparkTimer {
             this.totalTime = this.timeLeft;
             this.sessionStartTime = Date.now(); // Record when this session actually started
             this.debug(`Starting ${this.currentSession} session (${this.getCurrentSessionDuration()} minutes)`, 'info');
+
+            const noteInputEl = document.getElementById('sessionNoteInput');
+            const defaultNote = this.currentSession === 'focus' ? 'Focus time' : 'Break time';
+            const noteText = (noteInputEl && noteInputEl.value.trim()) || defaultNote;
+            this.sessionNote = noteText;
+            this.logSessionNote(this.currentSession, noteText);
+            if (noteInputEl) noteInputEl.value = '';
         }
 
         this.isRunning = true;
@@ -603,6 +617,9 @@ class SparkTimer {
 
         this.totalTime = this.timeLeft;
         this.breakContentOpened = false; // Reset break content flag on reset
+        this.sessionNote = null;
+        const resetNoteInputEl = document.getElementById('sessionNoteInput');
+        if (resetNoteInputEl) resetNoteInputEl.value = '';
         this.updateDisplay();
         this.updateControls();
         this.clearTimerState();
@@ -688,11 +705,12 @@ class SparkTimer {
             this.currentSession = 'focus';
             this.timeLeft = this.settings.focusDuration * 60;
             this.debug('Break complete - ready for focus session', 'info');
-            
+
             // Reset break content flag when switching to focus
             this.breakContentOpened = false;
         }
 
+        this.sessionNote = null;
         this.totalTime = this.timeLeft;
         this.updateDisplay();
         this.updateControls();
@@ -802,6 +820,37 @@ class SparkTimer {
         if (hintSubtext) {
             hintSubtext.textContent = isBreakSession ? 'Hold to skip' : 'Hold to reset';
         }
+
+        this.renderSessionNoteArea();
+    }
+
+    // Shows/hides the session-note input (idle) and running-note display
+    // (running) based on current state, for whichever session type is
+    // current (focus or break). Only ever toggles `display`/`placeholder` -
+    // never writes `.value` - so it's safe to call on every transition
+    // without clobbering an in-progress keystroke while the input is focused.
+    renderSessionNoteArea() {
+        const input = document.getElementById('sessionNoteInput');
+        const display = document.getElementById('sessionNoteDisplay');
+        if (!input || !display) return;
+
+        const isBreakSession = this.currentSession === 'shortBreak' || this.currentSession === 'longBreak';
+        const defaultNote = isBreakSession ? 'Break time' : 'Focus time';
+        const isIdle = !this.isRunning && !this.isPaused;
+
+        if (isIdle) {
+            input.placeholder = isBreakSession ? 'What do you want to do on your break?' : 'What are you focusing on?';
+            input.style.display = 'block';
+        } else {
+            input.style.display = 'none';
+        }
+
+        if (this.isRunning) {
+            display.style.display = 'block';
+            display.textContent = this.sessionNote || defaultNote;
+        } else {
+            display.style.display = 'none';
+        }
     }
 
     // Allow user to end the current break early and jump into a fresh focus session
@@ -899,7 +948,8 @@ class SparkTimer {
                 timeLeft: this.timeLeft,
                 totalTime: this.totalTime,
                 sessionStartTime: this.sessionStartTime,
-                breakContentOpened: this.breakContentOpened
+                breakContentOpened: this.breakContentOpened,
+                sessionNote: this.sessionNote
             };
             await chrome.storage.local.set({ timerState: state });
         }
@@ -915,13 +965,26 @@ class SparkTimer {
             timeLeft: this.timeLeft,
             totalTime: this.totalTime,
             sessionStartTime: null,
-            breakContentOpened: this.breakContentOpened
+            breakContentOpened: this.breakContentOpened,
+            sessionNote: null // no session is running while idle
         };
         await chrome.storage.local.set({ timerState: state });
     }
 
     async clearTimerState() {
         await chrome.storage.local.remove(['timerState']);
+    }
+
+    async logSessionNote(sessionType, note) {
+        try {
+            const result = await chrome.storage.local.get(['sessionNotes']);
+            const notes = result.sessionNotes || [];
+            notes.push({ timestamp: Date.now(), sessionType, note });
+            await chrome.storage.local.set({ sessionNotes: notes.slice(-200) });
+            this.debug(`Logged session note (${sessionType}): "${note}"`, 'info');
+        } catch (error) {
+            this.debug(`Failed to log session note: ${error.message}`, 'error');
+        }
     }
 
     async loadDebugLogs() {

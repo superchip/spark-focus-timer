@@ -719,7 +719,7 @@ async function handleTimerComplete() {
         
         // Determine next session
         let nextSession, nextDuration, sessionCount = timerState.sessionCount;
-        
+
         if (timerState.currentSession === 'focus') {
             sessionCount++;
             
@@ -740,7 +740,7 @@ async function handleTimerComplete() {
             nextDuration = settings.focusDuration;
             debugLog('Break complete - ready for focus session', 'info');
         }
-        
+
         // Update timer state for next session (but don't start automatically)
         const newTimerState = {
             isRunning: false,
@@ -749,7 +749,8 @@ async function handleTimerComplete() {
             timeLeft: nextDuration * 60,
             totalTime: nextDuration * 60,
             sessionStartTime: null,
-            breakContentOpened: false
+            breakContentOpened: false,
+            sessionNote: null
         };
         
         await chrome.storage.local.set({ timerState: newTimerState });
@@ -803,6 +804,22 @@ async function updateBackgroundStats(timerState, settings) {
     }
 
     await chrome.storage.local.set({ stats });
+}
+
+// Append a session note (focus/break) to the persisted log. Writes to the
+// same 'sessionNotes' storage key popup.js's logSessionNote uses, so entries
+// from either context interleave correctly regardless of which one handled
+// a given completion.
+async function logSessionNote(sessionType, note) {
+    try {
+        const result = await chrome.storage.local.get(['sessionNotes']);
+        const notes = result.sessionNotes || [];
+        notes.push({ timestamp: Date.now(), sessionType, note });
+        await chrome.storage.local.set({ sessionNotes: notes.slice(-200) });
+        debugLog(`Logged session note (${sessionType}): "${note}"`, 'info');
+    } catch (error) {
+        debugLog(`Failed to log session note: ${error.message}`, 'error');
+    }
 }
 
 // Open break content in background
@@ -1045,7 +1062,12 @@ async function startNextSessionFromNotification(sessionType) {
                 }
             }
         }
-        
+
+        // No popup UI is available in this headless path - log the default note,
+        // mirroring what startSession() does in popup.js when the user taps to start.
+        const defaultNote = actualSessionType === 'focus' ? 'Focus time' : 'Break time';
+        await logSessionNote(actualSessionType, defaultNote);
+
         // Update timer state to running (if we terminated a running break early we still keep sessionCount unchanged)
         const newTimerState = {
             isRunning: true,
@@ -1054,9 +1076,10 @@ async function startNextSessionFromNotification(sessionType) {
             timeLeft: duration * 60,
             totalTime: duration * 60,
             sessionStartTime: Date.now(),
-            breakContentOpened: false
+            breakContentOpened: false,
+            sessionNote: defaultNote
         };
-        
+
         // Save the new timer state first
         await chrome.storage.local.set({ timerState: newTimerState });
         debugLog(`Timer state saved: ${actualSessionType}, running: true`, 'info');
